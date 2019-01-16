@@ -1,11 +1,18 @@
-%% set up spm
+%% set up spm (LH iMac)
 
-[hd,sd] = get_homedir;
+[hd,sd] = get_homedir; % what is this function doing?
 addpath(genpath(fullfile(hd,'matlab','hidden_from_matlab','spm12')));
 
 scriptdir = fullfile(hd,'projects','continuous_RDM','pilot_analysis');
 EEGdatadir= fullfile(sd,'projects','continuous_RDM','EEG_pilot','sub003','EEG');
 BHVdatadir= fullfile(sd,'projects','continuous_RDM','EEG_pilot','sub003','behaviour');
+
+%% set up spm (MR iMac)
+
+addpath('/Users/maria/Documents/matlab/spm12');
+scriptdir = fullfile('/Users/maria/Documents/Matlab/continuous_eeg_analysis/eeg_analysis');
+EEGdatadir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','EEG_pilot','sub003','EEG');
+BHVdatadir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','EEG_pilot','sub003','behaviour');
 
 
 %% convert EEG data; downsample to 100 Hz; bandpass filter 0.1-30Hz
@@ -45,6 +52,7 @@ for i = 1:nSess
     fname_behav = fullfile(BHVdatadir,sprintf('sub%03.0f_sess%03.0f_behav.mat',subID,i));
     bhv{i} = load(fname_behav);
 end
+
 
 %% align behavioural data with EEG data
 
@@ -88,13 +96,13 @@ for i = 1:nSess %loop over sessions
                 end
                 tind = tind-1;
                 
-                %these are the three places where there are oth bugs - might be worth further investigation by Maria               
+                %these are the three places where there are oth bugs - might be worth further investigation by Maria
                 if i==1&b==4&teegind==693
                     %keyboard;
                 elseif i==6&b==2&teegind==877
                     %keyboard
                 elseif i==6&b==3&teegind==345
-                   %keyboard 
+                    %keyboard
                 end
             end
             
@@ -142,39 +150,63 @@ for i = 1:nSess
             nMatch(c) = sum(trigger_vals_behav==trigger_vals_eeg_zp(c:c+nSamplesBehav-1));
         end
         %plot(nMatch);pause; % this reveals a clear 'spike' in every session -
-                             % where the triggers in the EEG data match the behavioural triggers
-                             %but a bit strangely, it doesn't always seem
-                             %to be at 500 - it is sometimes up to half a
-                             %second earlier - Maria to investigate?
+        % where the triggers in the EEG data match the behavioural triggers
+        %but a bit strangely, it doesn't always seem
+        %to be at 500 - it is sometimes up to half a
+        %second earlier - Maria to investigate?
         
-        [~,best_match(i,b)] = max(nMatch);                     
+        [~,best_match(i,b)] = max(nMatch);
         
         %we may be out here by one sample - I can't quite work the indexing out, but
         %it won't matter in the grand scheme of things...
         block_start_eeg_idx(i,b) = findc(D{1}.time,eeg_events_block(1).time)-zp_size+best_match(i,b);
         block_end_eeg_idx(i,b)   = block_start_eeg_idx(i,b) + nSamplesBehav - 1;
-            
+        
         %grab the relevant data
         EEGdat{i}{b} = D{i}(:,block_start_eeg_idx(i,b):block_end_eeg_idx(i,b),1);
     end
 end
 
 
-%% build 'sliding' GLM 
+%% build 'sliding' GLM
 
 clear betas
 nChannels = 64;
+nSess = 4;
 for i = 1:nSess
+    
+    if i == 1
+        
+        nBlocks = 3;
+    else
+        nBlocks = 4;
+    end
+    
     for b = 1:nBlocks
         nLags = 150; %number of lags to test (100 lags = 1s)
         
         coherence = bhv{i}.S.coherence_frame{b}; %vector of coherence levels for this block
-        coherence(coherence>1) = 1; coherence(coherence<-1) = -1; % in presentation code, if abs(coherence) is >1 
-                                                                  % then *all* dots move in same direction, i.e. coherence = 1
+        coherence(coherence>1) = 1; coherence(coherence<-1) = -1; % in presentation code, if abs(coherence) is >1
+        % then *all* dots move in same direction, i.e. coherence = 1
+        
+        
+        mean_coherence = bhv{i}.S.mean_coherence{b}; % vector of mean coherences of this block - to figure out trial periods
+        
         
         %coherence = coherence(1:1000); % for piloting, delete once complete
         coherence_jump = abs([0; diff(coherence)])>0; %vector of coherence 'jumps'
         coherence_jump_level = coherence_jump.*abs(coherence); %vector of coherence 'jumps'
+        
+        integration_start = abs([0; diff(mean_coherence)])>0; %vector of trial starts
+        
+        button_press = trigger_vals_eegmatch{i}{b} == 201 |... % vector of button presses during trial periods
+            trigger_vals_eegmatch{i}{b} == 202;
+        %                        trigger_vals_eegmatch{i}{b} == 205 |...
+        %                        trigger_vals_eegmatch{i}{b} == 206; 
+        
+        button_press_incoh_motion = trigger_vals_eegmatch{i}{b} == 205 |...
+            trigger_vals_eegmatch{i}{b} == 206; % vector of button presses during intertrial periods
+        
         
         nF = length(coherence);
         
@@ -182,16 +214,44 @@ for i = 1:nSess
         for l = 1:nLags
             lback = l-1; %this is how many 'back' in time this regressor looks
             
+            % regressor for ERP
             reg_zp = [zeros(nLags,1); coherence_jump]; %zero pad regressor
             reg(:,l) =  reg_zp(nLags-lback+1:length(reg_zp)-lback);
             
+            % regressor for influence of coherence magnitude of step 
             reg_zp = [zeros(nLags,1); coherence_jump_level]; %zero pad regressor
             reg(:,l+nLags) =  reg_zp(nLags-lback+1:length(reg_zp)-lback);
             
-            nReg = 2; %number of regressors
+            % regressor for influence of button press in trial period
+            reg_zp = [zeros(nLags,1); button_press]; %zero pad regressor
+            reg(:,l+2.*nLags) =  reg_zp(nLags-lback+1:length(reg_zp)-lback);
+            
+            
+            % regressor for how button press going forward in trial period
+            % - probably failed 
+            reg_zp = [button_press; zeros(nLags,1); ]; %zero pad regressor
+            reg(:,l+3.*nLags) =  reg_zp(l:length(reg_zp)-nLags + lback);
+            
+            
+            % regressor for how button press going forward in intertrial
+            % period - probably failed 
+            reg_zp = [button_press_incoh_motion; zeros(nLags,1); ]; %zero pad regressor
+            reg(:,l+4.*nLags) =  reg_zp(l:length(reg_zp)-nLags + lback);
+            
+            
+            % regressor for influence of last trial period on signal -
+            % failed 
+            reg_zp = [mean_coherence; zeros(nLags,1); ]; %zero pad regressor
+            reg(:,l+5.*nLags) =  reg_zp(l:length(reg_zp)-nLags + lback);
+            
+            
+            nReg = 6; %number of regressors
             
             confound_EOG_reg = EEGdat{i}{b}(63:64,:)'; %EOG channels - include as confound regressor
+            
         end
+        
+        
         
         tmp = (pinv([reg confound_EOG_reg])*EEGdat{i}{b}')';
         betas(:,:,:,i,b) = reshape(tmp(:,1:nLags*nReg),nChannels,nLags,nReg); %channels * lags * regressors * sessions * blocks
@@ -199,7 +259,8 @@ for i = 1:nSess
 end
 
 time_label = 0:-10:-(nLags-1)*10;
-channel_ind = 40; %channel of interest (CPz = 40);
+time_label2 = 0:10:(nLags-1)*10;
+channel_ind =40; %channel of interest (CPz = 40);
 chanlabel = D{1}.chanlabels(channel_ind); chanlabel = chanlabel{1};
 
 betas_coi = squeeze(betas(channel_ind,:,:,:,:));
@@ -214,6 +275,169 @@ tidyfig;
 figure;
 plotmse(squeeze(betas_coi(:,2,:)),2,time_label);
 xlabel('Influence of coherence jump magnitude at time (t-X) ms on EEG at time t');
+title(sprintf('Channel: %s',chanlabel));
+tidyfig;
+
+figure;
+plotmse(squeeze(betas_coi(:,3,:)),2,time_label);
+xlabel('Influence of button press at time (t-X) ms on EEG at time t');
+title(sprintf('Channel: %s',chanlabel));
+tidyfig;
+
+figure;
+plotmse(squeeze(betas_coi(:,4,:)),2,time_label2);
+xlabel('Influence of button press during coherent motion on future EEG at time t');
+title(sprintf('Channel: %s',chanlabel));
+tidyfig;
+
+figure;
+plotmse(squeeze(betas_coi(:,5,:)),2,time_label2);
+xlabel('Influence of button press during incoherent motion on future EEG at time t');
+title(sprintf('Channel: %s',chanlabel));
+tidyfig;
+
+figure;
+plotmse(squeeze(betas_coi(:,6,:)),2,time_label2);
+xlabel('Influence of trial period on future EEG at time t');
+title(sprintf('Channel: %s',chanlabel));
+tidyfig;
+
+%% repeat the above GLM analysis for different block types 
+
+clear betas
+nChannels = 64;
+nSess = 4;
+for i = 1:nSess
+    
+    if i == 1
+        
+        nBlocks = 3;
+    else
+        nBlocks = 4;
+    end
+    
+    for b = 1:nBlocks
+        nLags = 150; %number of lags to test (100 lags = 1s)
+        
+        
+        blockID = str2num(bhv{1}.S.block_ID_cells{b});
+        
+        coherence = bhv{i}.S.coherence_frame{b}; %vector of coherence levels for this block
+        coherence(coherence>1) = 1; coherence(coherence<-1) = -1; % in presentation code, if abs(coherence) is >1
+        % then *all* dots move in same direction, i.e. coherence = 1
+        
+        
+        mean_coherence = bhv{i}.S.mean_coherence{b}; % vector of mean coherences of this block - to figure out trial periods
+        
+        
+        %coherence = coherence(1:1000); % for piloting, delete once complete
+        coherence_jump = abs([0; diff(coherence)])>0; %vector of coherence 'jumps'
+        coherence_jump_level = coherence_jump.*abs(coherence); %vector of coherence 'jumps'
+        
+        integration_start = abs([0; diff(mean_coherence)])>0; %vector of trial starts
+        
+        button_press = trigger_vals_eegmatch{i}{b} == 201 |... 
+                       trigger_vals_eegmatch{i}{b} == 202;
+                         % vector of button presses during trial periods
+        %                        trigger_vals_eegmatch{i}{b} == 205 |...
+        %                        trigger_vals_eegmatch{i}{b} == 206; 
+        
+        button_press_incoh_motion = trigger_vals_eegmatch{i}{b} == 205 |...
+                                    trigger_vals_eegmatch{i}{b} == 206; 
+                                % vector of button presses during intertrial periods
+        
+        
+        nF = length(coherence);
+        
+        clear reg;
+        for l = 1:nLags
+            lback = l-1; %this is how many 'back' in time this regressor looks
+            
+            % regressor for ERP
+            reg_zp = [zeros(nLags,1); coherence_jump]; %zero pad regressor
+            reg(:,l) =  reg_zp(nLags-lback+1:length(reg_zp)-lback);
+            
+            % regressor for influence of coherence magnitude of step 
+            reg_zp = [zeros(nLags,1); coherence_jump_level]; %zero pad regressor
+            reg(:,l+nLags) =  reg_zp(nLags-lback+1:length(reg_zp)-lback);
+            
+            % regressor for influence of button press in trial period
+            reg_zp = [zeros(nLags,1); button_press]; %zero pad regressor
+            reg(:,l+2.*nLags) =  reg_zp(nLags-lback+1:length(reg_zp)-lback);
+            
+            
+            % regressor for how button press going forward in trial period
+            % - probably failed 
+            reg_zp = [button_press; zeros(nLags,1); ]; %zero pad regressor
+            reg(:,l+3.*nLags) =  reg_zp(l:length(reg_zp)-nLags + lback);
+            
+            
+            % regressor for how button press going forward in intertrial
+            % period - probably failed 
+            reg_zp = [button_press_incoh_motion; zeros(nLags,1); ]; %zero pad regressor
+            reg(:,l+4.*nLags) =  reg_zp(l:length(reg_zp)-nLags + lback);
+            
+            
+            % regressor for influence of last trial period on signal -
+            % failed 
+            reg_zp = [mean_coherence; zeros(nLags,1); ]; %zero pad regressor
+            reg(:,l+5.*nLags) =  reg_zp(l:length(reg_zp)-nLags + lback);
+            
+            
+            nReg = 6; %number of regressors
+            
+            confound_EOG_reg = EEGdat{i}{b}(63:64,:)'; %EOG channels - include as confound regressor
+            
+        end
+        
+        
+        
+        tmp = (pinv([reg confound_EOG_reg])*EEGdat{i}{b}')';
+        betas(:,:,:,i,b) = reshape(tmp(:,1:nLags*nReg),nChannels,nLags,nReg); %channels * lags * regressors * sessions * blocks
+    end
+end
+
+time_label = 0:-10:-(nLags-1)*10;
+time_label2 = 0:10:(nLags-1)*10;
+channel_ind =40; %channel of interest (CPz = 40);
+chanlabel = D{1}.chanlabels(channel_ind); chanlabel = chanlabel{1};
+
+betas_coi = squeeze(betas(channel_ind,:,:,:,:));
+betas_coi = betas_coi(:,:,:); %collapse across sessions/blocks
+
+figure;
+plotmse(squeeze(betas_coi(:,1,:)),2,time_label);
+xlabel('Influence of coherence jump at time (t-X) ms on EEG at time t');
+title(sprintf('Channel: %s',chanlabel));
+tidyfig;
+
+figure;
+plotmse(squeeze(betas_coi(:,2,:)),2,time_label);
+xlabel('Influence of coherence jump magnitude at time (t-X) ms on EEG at time t');
+title(sprintf('Channel: %s',chanlabel));
+tidyfig;
+
+figure;
+plotmse(squeeze(betas_coi(:,3,:)),2,time_label);
+xlabel('Influence of button press at time (t-X) ms on EEG at time t');
+title(sprintf('Channel: %s',chanlabel));
+tidyfig;
+
+figure;
+plotmse(squeeze(betas_coi(:,4,:)),2,time_label2);
+xlabel('Influence of button press during coherent motion on future EEG at time t');
+title(sprintf('Channel: %s',chanlabel));
+tidyfig;
+
+figure;
+plotmse(squeeze(betas_coi(:,5,:)),2,time_label2);
+xlabel('Influence of button press during incoherent motion on future EEG at time t');
+title(sprintf('Channel: %s',chanlabel));
+tidyfig;
+
+figure;
+plotmse(squeeze(betas_coi(:,6,:)),2,time_label2);
+xlabel('Influence of trial period on future EEG at time t');
 title(sprintf('Channel: %s',chanlabel));
 tidyfig;
 
