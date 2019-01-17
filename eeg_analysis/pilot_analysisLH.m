@@ -284,29 +284,67 @@ xlabel('Influence of button press at time (t-X) ms on EEG at time t');
 title(sprintf('Channel: %s',chanlabel));
 tidyfig;
 
-figure;
-plotmse(squeeze(betas_coi(:,4,:)),2,time_label2);
-xlabel('Influence of button press during coherent motion on future EEG at time t');
-title(sprintf('Channel: %s',chanlabel));
-tidyfig;
 
-figure;
-plotmse(squeeze(betas_coi(:,5,:)),2,time_label2);
-xlabel('Influence of button press during incoherent motion on future EEG at time t');
-title(sprintf('Channel: %s',chanlabel));
-tidyfig;
+% 
+% figure;
+% plotmse(squeeze(betas_coi(:,4,:)),2,time_label2);
+% xlabel('Influence of button press during coherent motion on future EEG at time t');
+% title(sprintf('Channel: %s',chanlabel));
+% tidyfig;
+% 
+% figure;
+% plotmse(squeeze(betas_coi(:,5,:)),2,time_label2);
+% xlabel('Influence of button press during incoherent motion on future EEG at time t');
+% title(sprintf('Channel: %s',chanlabel));
+% tidyfig;
+% 
+% figure;
+% plotmse(squeeze(betas_coi(:,6,:)),2,time_label2);
+% xlabel('Influence of trial period on future EEG at time t');
+% title(sprintf('Channel: %s',chanlabel));
+% tidyfig;
 
-figure;
-plotmse(squeeze(betas_coi(:,6,:)),2,time_label2);
-xlabel('Influence of trial period on future EEG at time t');
-title(sprintf('Channel: %s',chanlabel));
-tidyfig;
+%% %% open fieldtrip - make topoplot of regressors with fieldtrip 
+
+
+% start fieldtrip  and add folders with .mat files with data structure from
+% fieldtrip after pre-processing
+addpath('/Users/maria/Documents/MATLAB/fieldtrip-master'); % fieldtrip tool box to analyse data
+bs = betas(:,:,:,:);
+
+% take the average across sessions 
+mean_b = mean(bs,4);
+
+ft_defaults % start fieldtrip
+
+ft_struct.dimord = 'chan_time';
+
+ft_struct.label = D{1}.chanlabels; 
+% ft_struct.elec = average_ERP{1}.elec;
+ft_struct.avg = mean_b(:,:,3); 
+ft_struct.time = time_label; 
+
+%% plot topoplots 
+
+
+cfg = [];                            
+% cfg.xlim = [0.3 0.5];  % time limit               
+% cfg.zlim = [0 6e-14];  % colour limit            
+cfg.layout = 'quickcap64.mat';          
+% cfg.parameter = 'individual'; % the default 'avg' is not present in the data
+figure; ft_topoplotER(cfg,ft_struct); colorbar
+
+
+
+
 
 %% repeat the above GLM analysis for different block types 
 
 clear betas
+clear betas_test
 nChannels = 64;
-nSess = 4;
+nSess = 5;
+
 for i = 1:nSess
     
     if i == 1
@@ -319,8 +357,9 @@ for i = 1:nSess
     for b = 1:nBlocks
         nLags = 150; %number of lags to test (100 lags = 1s)
         
-        
-        blockID = str2num(bhv{1}.S.block_ID_cells{b});
+      
+        blockID(i,b) = str2num(bhv{i}.S.block_ID_cells{b});
+      
         
         coherence = bhv{i}.S.coherence_frame{b}; %vector of coherence levels for this block
         coherence(coherence>1) = 1; coherence(coherence<-1) = -1; % in presentation code, if abs(coherence) is >1
@@ -397,47 +436,62 @@ for i = 1:nSess
     end
 end
 
+condition{1} = 'ITIs INTs'; 
+condition{2} = 'ITIs INTL'; 
+condition{3} = 'ITIL INTs'; 
+condition{4} = 'ITIL INTL'; 
+
+for block = 1:4
+
+    
+ idx = blockID == block;    
+betas_test = betas(:,:,:,idx);
+    
+    
 time_label = 0:-10:-(nLags-1)*10;
 time_label2 = 0:10:(nLags-1)*10;
 channel_ind =40; %channel of interest (CPz = 40);
 chanlabel = D{1}.chanlabels(channel_ind); chanlabel = chanlabel{1};
 
-betas_coi = squeeze(betas(channel_ind,:,:,:,:));
+betas_coi = squeeze(betas_test(channel_ind,:,:,:,:));
 betas_coi = betas_coi(:,:,:); %collapse across sessions/blocks
 
 figure;
 plotmse(squeeze(betas_coi(:,1,:)),2,time_label);
 xlabel('Influence of coherence jump at time (t-X) ms on EEG at time t');
-title(sprintf('Channel: %s',chanlabel));
+title(sprintf('Channel: %s Block: %s',chanlabel, condition{block}));
 tidyfig;
 
 figure;
 plotmse(squeeze(betas_coi(:,2,:)),2,time_label);
 xlabel('Influence of coherence jump magnitude at time (t-X) ms on EEG at time t');
-title(sprintf('Channel: %s',chanlabel));
+title(sprintf('Channel: %s Block: %s',chanlabel, condition{block}));
 tidyfig;
 
 figure;
 plotmse(squeeze(betas_coi(:,3,:)),2,time_label);
 xlabel('Influence of button press at time (t-X) ms on EEG at time t');
-title(sprintf('Channel: %s',chanlabel));
+title(sprintf('Channel: %s Block: %s',chanlabel, condition{block}));
 tidyfig;
 
-figure;
-plotmse(squeeze(betas_coi(:,4,:)),2,time_label2);
-xlabel('Influence of button press during coherent motion on future EEG at time t');
-title(sprintf('Channel: %s',chanlabel));
-tidyfig;
+% figure;
+% plotmse(squeeze(betas_coi(:,4,:)),2,time_label2);
+% xlabel('Influence of button press during coherent motion on future EEG at time t');
+% title(sprintf('Channel: %s Block: %s',chanlabel, condition{block}));
+% tidyfig;
+% 
+% figure;
+% plotmse(squeeze(betas_coi(:,5,:)),2,time_label2);
+% xlabel('Influence of button press during incoherent motion on future EEG at time t');
+% title(sprintf('Channel: %s Block: %s',chanlabel,condition{block}));
+% tidyfig;
+% 
+% figure;
+% plotmse(squeeze(betas_coi(:,6,:)),2,time_label2);
+% xlabel('Influence of trial period on future EEG at time t');
+% title(sprintf('Channel: %s Block: %s',chanlabel, condition{block}));
+% tidyfig;
 
-figure;
-plotmse(squeeze(betas_coi(:,5,:)),2,time_label2);
-xlabel('Influence of button press during incoherent motion on future EEG at time t');
-title(sprintf('Channel: %s',chanlabel));
-tidyfig;
+end
 
-figure;
-plotmse(squeeze(betas_coi(:,6,:)),2,time_label2);
-xlabel('Influence of trial period on future EEG at time t');
-title(sprintf('Channel: %s',chanlabel));
-tidyfig;
 

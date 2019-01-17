@@ -6,7 +6,7 @@
 addpath('/Users/maria/MATLAB-Drive/fieldtrip-master'); % fieldtrip tool box to analyse data
 ft_defaults % start fieldtrip
 
-addpath('/Users/maria/MATLAB-Drive/MATLAB/continous_rdk/analysis/eeg_analysis');
+addpath('/Users/maria/Documents/data/data.continuous_rdk/EEG_pilot/sub001/EEG/pre-processed_data_eeg_pilot001');
 %% load data
 
 data = load('sub001_clean.mat');
