@@ -3,7 +3,7 @@
 [hd,sd] = get_homedir; % what is this function doing?
 addpath(genpath(fullfile(hd,'matlab','hidden_from_matlab','spm12')));
 
-scriptdir = fullfile(hd,'projects','continuous_RDM','pilot_analysis');
+scriptdir = fullfile(hd,'projects','continuous_eeg_analysis','eeg_analysis');
 EEGdatadir= fullfile(sd,'projects','continuous_RDM','EEG_pilot','sub003','EEG');
 BHVdatadir= fullfile(sd,'projects','continuous_RDM','EEG_pilot','sub003','behaviour');
 
