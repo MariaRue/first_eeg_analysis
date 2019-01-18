@@ -1,19 +1,23 @@
-%% set up spm (LH iMac)
+current_user = 'LH';
 
-[hd,sd] = get_homedir; % what is this function doing?
-addpath(genpath(fullfile(hd,'matlab','hidden_from_matlab','spm12')));
-
-scriptdir = fullfile(hd,'projects','continuous_eeg_analysis','eeg_analysis');
-EEGdatadir= fullfile(sd,'projects','continuous_RDM','EEG_pilot','sub003','EEG');
-BHVdatadir= fullfile(sd,'projects','continuous_RDM','EEG_pilot','sub003','behaviour');
-
-%% set up spm (MR iMac)
-
-addpath('/Users/maria/Documents/matlab/spm12');
-scriptdir = fullfile('/Users/maria/Documents/Matlab/continuous_eeg_analysis/eeg_analysis');
-EEGdatadir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','EEG_pilot','sub003','EEG');
-BHVdatadir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','EEG_pilot','sub003','behaviour');
-
+switch current_user
+    % set up spm (LH iMac)
+    case 'LH'
+    [hd,sd] = get_homedir; % what is this function doing?
+    addpath(genpath(fullfile(hd,'matlab','hidden_from_matlab','spm12')));
+    
+    scriptdir = fullfile(hd,'projects','continuous_eeg_analysis','eeg_analysis');
+    EEGdatadir= fullfile(sd,'projects','continuous_RDM','EEG_pilot','sub003','EEG');
+    BHVdatadir= fullfile(sd,'projects','continuous_RDM','EEG_pilot','sub003','behaviour');
+    
+    case 'MR'
+    % set up spm (MR iMac)
+    addpath('/Users/maria/Documents/matlab/spm12');
+    addpath('/Users/maria/Documents/MATLAB/fieldtrip-master'); % fieldtrip tool box to analyse data
+    scriptdir = fullfile('/Users/maria/Documents/Matlab/continuous_eeg_analysis/eeg_analysis');
+    EEGdatadir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','EEG_pilot','sub003','EEG');
+    BHVdatadir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','EEG_pilot','sub003','behaviour');
+end
 
 %% convert EEG data; downsample to 100 Hz; bandpass filter 0.1-30Hz
 
@@ -172,7 +176,7 @@ end
 
 clear betas
 nChannels = 64;
-nSess = 4;
+nSess = 5;
 for i = 1:nSess
     
     if i == 1
@@ -210,80 +214,53 @@ for i = 1:nSess
         
         nF = length(coherence);
         
-        clear reg;
-        for l = 1:nLags
-            lback = l-1; %this is how many 'back' in time this regressor looks
-            
-            % regressor for ERP
-            reg_zp = [zeros(nLags,1); coherence_jump]; %zero pad regressor
-            reg(:,l) =  reg_zp(nLags-lback+1:length(reg_zp)-lback);
-            
-            % regressor for influence of coherence magnitude of step 
-            reg_zp = [zeros(nLags,1); coherence_jump_level]; %zero pad regressor
-            reg(:,l+nLags) =  reg_zp(nLags-lback+1:length(reg_zp)-lback);
-            
-            % regressor for influence of button press in trial period
-            reg_zp = [zeros(nLags,1); button_press]; %zero pad regressor
-            reg(:,l+2.*nLags) =  reg_zp(nLags-lback+1:length(reg_zp)-lback);
-            
-            
-            % regressor for how button press going forward in trial period
-            % - probably failed 
-            reg_zp = [button_press; zeros(nLags,1); ]; %zero pad regressor
-            reg(:,l+3.*nLags) =  reg_zp(l:length(reg_zp)-nLags + lback);
-            
-            
-            % regressor for how button press going forward in intertrial
-            % period - probably failed 
-            reg_zp = [button_press_incoh_motion; zeros(nLags,1); ]; %zero pad regressor
-            reg(:,l+4.*nLags) =  reg_zp(l:length(reg_zp)-nLags + lback);
-            
-            
-            % regressor for influence of last trial period on signal -
-            % failed 
-            reg_zp = [mean_coherence; zeros(nLags,1); ]; %zero pad regressor
-            reg(:,l+5.*nLags) =  reg_zp(l:length(reg_zp)-nLags + lback);
-            
-            
-            nReg = 6; %number of regressors
-            
-            confound_EOG_reg = EEGdat{i}{b}(63:64,:)'; %EOG channels - include as confound regressor
-            
+        regressor_list(1).value = coherence_jump; 
+        regressor_list(1).nLagsBack = 100; 
+        regressor_list(1).nLagsForward = 150;
+        regressor_list(1).name = 'coherence_jump'; 
+        
+        regressor_list(2).value = coherence_jump_level; 
+        regressor_list(2).nLagsBack = 100; 
+        regressor_list(2).nLagsForward = 150;
+        regressor_list(2).name = 'coherence_jump_level'; 
+        
+        regressor_list(3).value = button_press; 
+        regressor_list(3).nLagsBack = 150; 
+        regressor_list(3).nLagsForward = 150;
+        regressor_list(3).name = 'button_press'; 
+        
+        regressor_list(4).value = EEGdat{i}{b}(63,:)';
+        regressor_list(4).nLagsBack = 0; 
+        regressor_list(4).nLagsForward = 0;
+        regressor_list(4).name = 'confound_EOG_reg_ver'; 
+        
+        regressor_list(5).value = EEGdat{i}{b}(64,:)';
+        regressor_list(5).nLagsBack = 0; 
+        regressor_list(5).nLagsForward = 0;
+        regressor_list(5).name = 'confound_EOG_reg_hor'; 
+        
+        Fs = D{i}.fsample; 
+        [lagged_design_matrix, time_idx] = create_lagged_design_matrix(regressor_list, Fs); 
+   
+        tmp = (pinv(lagged_design_matrix')*EEGdat{i}{b}')';
+        
+        for r = 1:length(regressor_list)
+            betas{r}(:,:,i,b) = tmp(:,time_idx(r).dm_row_idx); %betas (indexed by regressors): channels * lags * sessions * blocks
         end
-        
-        
-        
-        tmp = (pinv([reg confound_EOG_reg])*EEGdat{i}{b}')';
-        betas(:,:,:,i,b) = reshape(tmp(:,1:nLags*nReg),nChannels,nLags,nReg); %channels * lags * regressors * sessions * blocks
+                
     end
 end
 
-time_label = 0:-10:-(nLags-1)*10;
-time_label2 = 0:10:(nLags-1)*10;
-channel_ind =40; %channel of interest (CPz = 40);
+channel_ind = 40; %channel of interest (CPz = 40);
 chanlabel = D{1}.chanlabels(channel_ind); chanlabel = chanlabel{1};
 
-betas_coi = squeeze(betas(channel_ind,:,:,:,:));
-betas_coi = betas_coi(:,:,:); %collapse across sessions/blocks
-
-figure;
-plotmse(squeeze(betas_coi(:,1,:)),2,time_label);
-xlabel('Influence of coherence jump at time (t-X) ms on EEG at time t');
-title(sprintf('Channel: %s',chanlabel));
-tidyfig;
-
-figure;
-plotmse(squeeze(betas_coi(:,2,:)),2,time_label);
-xlabel('Influence of coherence jump magnitude at time (t-X) ms on EEG at time t');
-title(sprintf('Channel: %s',chanlabel));
-tidyfig;
-
-figure;
-plotmse(squeeze(betas_coi(:,3,:)),2,time_label);
-xlabel('Influence of button press at time (t-X) ms on EEG at time t');
-title(sprintf('Channel: %s',chanlabel));
-tidyfig;
-
+for r = 1:3
+    figure;
+    plotmse(squeeze(betas{r}(channel_ind,:,:)),2,time_idx(r).timebins);
+    xlabel(sprintf('Influence of %s on EEG at time (t+X) ms',time_idx(r).name));
+    title(sprintf('Channel: %s',chanlabel));
+    tidyfig;
+end
 
 % 
 % figure;
@@ -309,7 +286,6 @@ tidyfig;
 
 % start fieldtrip  and add folders with .mat files with data structure from
 % fieldtrip after pre-processing
-addpath('/Users/maria/Documents/MATLAB/fieldtrip-master'); % fieldtrip tool box to analyse data
 bs = betas(:,:,:,:);
 
 % take the average across sessions 
