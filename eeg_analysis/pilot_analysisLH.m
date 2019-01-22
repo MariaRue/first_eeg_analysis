@@ -1,4 +1,4 @@
-current_user = 'LH';
+current_user = 'MR';
 
 switch current_user
     % set up spm (LH iMac)
@@ -13,16 +13,17 @@ switch current_user
     case 'MR'
     % set up spm (MR iMac)
     addpath('/Users/maria/Documents/matlab/spm12');
-    addpath('/Users/maria/Documents/MATLAB/fieldtrip-master'); % fieldtrip tool box to analyse data
+    addpath('/Users/maria/Documents/MATLAB/fieldtrip'); % fieldtrip tool box to analyse data
     scriptdir = fullfile('/Users/maria/Documents/Matlab/continuous_eeg_analysis/eeg_analysis');
     EEGdatadir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','EEG_pilot','sub003','EEG');
     BHVdatadir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','EEG_pilot','sub003','behaviour');
+    ft_defaults
 end
 
 %% convert EEG data; downsample to 100 Hz; bandpass filter 0.1-30Hz
 
 subID = 3;
-nSess = 7; %number of sessions
+nSess = 5; %number of sessions
 
 cd(EEGdatadir);
 for i = 1:nSess
@@ -70,7 +71,7 @@ for i = 1:nSess %loop over sessions
     else
         eob = [0 eob];
         for b = 1:nBlocks % loop over blocks
-            
+
             %a number of triggers in S.trigger_vals haven't made it into
             %the EEG data. We now try to correct this problem, making
             %'trigger_vals_eegmatch' - a version of S.trigger_vals that
@@ -89,6 +90,7 @@ for i = 1:nSess %loop over sessions
             
             %now loop backwards from end of tvlist_eeg and try to match with tvlist
             teegind = length(tvlist_eeg);
+            
             tind = length(tvlist);
             keep = []; %this will be a list of all entries in tvlist_eeg that we keep
             while tind>0 & teegind>0
@@ -101,14 +103,14 @@ for i = 1:nSess %loop over sessions
                 tind = tind-1;
                 
                 %these are the three places where there are oth bugs - might be worth further investigation by Maria
-                if i==1&b==4&teegind==693
-                    %keyboard;
-                elseif i==6&b==2&teegind==877
-                    %keyboard
-                elseif i==6&b==3&teegind==345
-                    %keyboard
+                if i==1&b==4&teegind==693 % at this time point a trigger has been send to the EEG recorder that does not exist or is not defined, which was number 2, correct trigger before would have been 26
+                 %   keyboard;
+                elseif i==6&b==2&teegind==877 % very weird trigger 19 only occurd once in the tvlist vector at 886 - so in the past from 877 in the eeg list - maybe all triggers are sort of delayed in the eeg trig list? 
+                   %  keyboard
+                elseif i==6&b==3&teegind==345 % trigger 8 has been recorded in the eeg recording file but that trigger doesn't exist! 
+                  %   keyboard
                 end
-            end
+            end % while loop  % This might also explain the shifts we find in the lag between EEG and behav data? It also seems that over time the the lag between eeg triggers and behav triggers increases from 1 to 2 frames or more
             
             if length(tvlist(find(keep)))==length(tvlist_eeg) ...
                     && all(tvlist(find(keep))==tvlist_eeg) %we've matched them all!
@@ -120,7 +122,7 @@ for i = 1:nSess %loop over sessions
             
             
         end
-    end
+    end 
 end
 
 %% now we find the eeg data corresponding to the relevant time-periods in S, check that trigger channel is well aligned, and snip out this eeg data
@@ -152,8 +154,14 @@ for i = 1:nSess
         
         for c = 1:(nSamplesEEG_zp + 1 - nSamplesBehav)
             nMatch(c) = sum(trigger_vals_behav==trigger_vals_eeg_zp(c:c+nSamplesBehav-1));
+%             
+%            if i == 6 && b == 2
+%                keyboard
+%            end
         end
-        %plot(nMatch);pause; % this reveals a clear 'spike' in every session -
+        
+      
+       % plot(nMatch); disp(b); pause; % this reveals a clear 'spike' in every session -
         % where the triggers in the EEG data match the behavioural triggers
         %but a bit strangely, it doesn't always seem
         %to be at 500 - it is sometimes up to half a
@@ -212,32 +220,46 @@ for i = 1:nSess
             trigger_vals_eegmatch{i}{b} == 206; % vector of button presses during intertrial periods
         
         
+        trial_start = trigger_vals_eegmatch{i}{b} == 30 |...  % get start of each trial for all coherence levels 
+                      trigger_vals_eegmatch{i}{b} == 40 |... 
+                      trigger_vals_eegmatch{i}{b} == 50 |... 
+                      trigger_vals_eegmatch{i}{b} == 130 |... 
+                      trigger_vals_eegmatch{i}{b} == 140 |... 
+                      trigger_vals_eegmatch{i}{b} == 150;  
+        
         nF = length(coherence);
+%         
+%         regressor_list(1).value = coherence_jump; 
+%         regressor_list(1).nLagsBack = 100; 
+%         regressor_list(1).nLagsForward = 150;
+%         regressor_list(1).name = 'coherence_jump'; 
+%         
+%         regressor_list(2).value = coherence_jump_level; 
+%         regressor_list(2).nLagsBack = 100; 
+%         regressor_list(2).nLagsForward = 150;
+%         regressor_list(2).name = 'coherence_jump_level'; 
         
-        regressor_list(1).value = coherence_jump; 
-        regressor_list(1).nLagsBack = 100; 
+        regressor_list(1).value = button_press; 
+        regressor_list(1).nLagsBack = 150; 
         regressor_list(1).nLagsForward = 150;
-        regressor_list(1).name = 'coherence_jump'; 
+        regressor_list(1).name = 'button_press'; 
         
-        regressor_list(2).value = coherence_jump_level; 
-        regressor_list(2).nLagsBack = 100; 
-        regressor_list(2).nLagsForward = 150;
-        regressor_list(2).name = 'coherence_jump_level'; 
-        
-        regressor_list(3).value = button_press; 
-        regressor_list(3).nLagsBack = 150; 
-        regressor_list(3).nLagsForward = 150;
-        regressor_list(3).name = 'button_press'; 
+        regressor_list(2).value = trial_start;
+        regressor_list(2).nLagsBack = 50; 
+        regressor_list(2).nLagsForward = 200;
+        regressor_list(2).name = 'trial start'; 
         
         regressor_list(4).value = EEGdat{i}{b}(63,:)';
         regressor_list(4).nLagsBack = 0; 
         regressor_list(4).nLagsForward = 0;
         regressor_list(4).name = 'confound_EOG_reg_ver'; 
         
-        regressor_list(5).value = EEGdat{i}{b}(64,:)';
-        regressor_list(5).nLagsBack = 0; 
-        regressor_list(5).nLagsForward = 0;
-        regressor_list(5).name = 'confound_EOG_reg_hor'; 
+        regressor_list(3).value = EEGdat{i}{b}(64,:)';
+        regressor_list(3).nLagsBack = 0; 
+        regressor_list(3).nLagsForward = 0;
+        regressor_list(3).name = 'confound_EOG_reg_hor'; 
+        
+
         
         Fs = D{i}.fsample; 
         [lagged_design_matrix, time_idx] = create_lagged_design_matrix(regressor_list, Fs); 
