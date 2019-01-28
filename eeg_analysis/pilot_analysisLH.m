@@ -226,40 +226,61 @@ for i = 1:nSess
                       trigger_vals_eegmatch{i}{b} == 130 |... 
                       trigger_vals_eegmatch{i}{b} == 140 |... 
                       trigger_vals_eegmatch{i}{b} == 150;  
+                  
+                  
+                  % regressor for prediciton error 
+                  coherences = []; 
+                  coherences = bhv{i}.S.coherence_frame{b}; 
+                  diff_coherences = diff(coherences(coherence_jump)); 
+                  diff_coherences = [coherences(1); diff_coherences]; % differnce to prev cohernce for first coherence is that coherence itself 
+                  jump_idx = find(coherence_jump); 
+                  coherence_level_difference = zeros(size(coherences,1),1); 
+                  coherence_level_difference(jump_idx) = diff_coherences; 
         
         nF = length(coherence);
 %         
-%         regressor_list(1).value = coherence_jump; 
-%         regressor_list(1).nLagsBack = 100; 
-%         regressor_list(1).nLagsForward = 150;
-%         regressor_list(1).name = 'coherence_jump'; 
-%         
-%         regressor_list(2).value = coherence_jump_level; 
-%         regressor_list(2).nLagsBack = 100; 
-%         regressor_list(2).nLagsForward = 150;
-%         regressor_list(2).name = 'coherence_jump_level'; 
-        
-        regressor_list(1).value = button_press; 
-        regressor_list(1).nLagsBack = 150; 
+        regressor_list(1).value = coherence_jump; 
+        regressor_list(1).nLagsBack = 100; 
         regressor_list(1).nLagsForward = 150;
-        regressor_list(1).name = 'button_press'; 
+        regressor_list(1).name = 'coherence_jump'; 
         
-        regressor_list(2).value = trial_start;
-        regressor_list(2).nLagsBack = 50; 
-        regressor_list(2).nLagsForward = 200;
-        regressor_list(2).name = 'trial start'; 
+        regressor_list(2).value = coherence_jump_level; 
+        regressor_list(2).nLagsBack = 100; 
+        regressor_list(2).nLagsForward = 150;
+        regressor_list(2).name = 'coherence_jump_level'; 
         
-        regressor_list(4).value = EEGdat{i}{b}(63,:)';
-        regressor_list(4).nLagsBack = 0; 
-        regressor_list(4).nLagsForward = 0;
-        regressor_list(4).name = 'confound_EOG_reg_ver'; 
+        regressor_list(3).value = coherence_level_difference;
+        regressor_list(3).nLagsBack = 150; 
+        regressor_list(3).nLagsForward = 150;
+        regressor_list(3).name = 'prediction error'; 
         
-        regressor_list(3).value = EEGdat{i}{b}(64,:)';
-        regressor_list(3).nLagsBack = 0; 
-        regressor_list(3).nLagsForward = 0;
-        regressor_list(3).name = 'confound_EOG_reg_hor'; 
+        regressor_list(4).value = button_press; 
+        regressor_list(4).nLagsBack = 150; 
+        regressor_list(4).nLagsForward = 150;
+        regressor_list(4).name = 'button_press'; 
+        
+        regressor_list(5).value = button_press_incoh_motion;
+        regressor_list(5).nLagsBack = 150; 
+        regressor_list(5).nLagsForward = 150;
+        regressor_list(5).name = 'iti button press'; 
+        
+        regressor_list(6).value = trial_start;
+        regressor_list(6).nLagsBack = 50; 
+        regressor_list(6).nLagsForward = 500;
+        regressor_list(6).name = 'trial start'; 
+        
+        regressor_list(7).value = EEGdat{i}{b}(63,:)';
+        regressor_list(7).nLagsBack = 0; 
+        regressor_list(7).nLagsForward = 0;
+        regressor_list(7).name = 'confound_EOG_reg_ver'; 
+        
+        regressor_list(8).value = EEGdat{i}{b}(64,:)';
+        regressor_list(8).nLagsBack = 0; 
+        regressor_list(8).nLagsForward = 0;
+        regressor_list(8).name = 'confound_EOG_reg_hor'; 
         
 
+        
         
         Fs = D{i}.fsample; 
         [lagged_design_matrix, time_idx] = create_lagged_design_matrix(regressor_list, Fs); 
@@ -276,7 +297,7 @@ end
 channel_ind = 40; %channel of interest (CPz = 40);
 chanlabel = D{1}.chanlabels(channel_ind); chanlabel = chanlabel{1};
 
-for r = 1:3
+for r = 1:5
     figure;
     plotmse(squeeze(betas{r}(channel_ind,:,:)),2,time_idx(r).timebins);
     xlabel(sprintf('Influence of %s on EEG at time (t+X) ms',time_idx(r).name));
