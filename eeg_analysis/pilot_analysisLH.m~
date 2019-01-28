@@ -53,19 +53,13 @@ for i = 1:nSess
 end
 cd(scriptdir);
 
-%% time-frequency decompoisiton
-
+%%
 
 if tf_analysis
-    for i = 1:nSess
-        S = [];
-        S.D = D{i};
-        S.channels = 'All';
-        S.frequencies = 2:2:40;
-        S.method = 'morlet';
-        S.phase = 1;
-        D{i} = spm_eeg_tf(S);
-    end
+    S = [];
+    S.D = D{i};
+    S.channels = 'All';
+    S.frequencies = 
 end
 
 %% load in behavioural data
