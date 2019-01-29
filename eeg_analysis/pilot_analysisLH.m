@@ -59,7 +59,7 @@ cd(scriptdir);
 if tf_analysis
     for i = 1:nSess
         fname_target = fullfile(EEGdatadir,...
-            sprintf('ftspmeeg_sub%03.0f_sess%03.0f_fil001.mat',subID,i));
+            sprintf('tf_fdspmeeg_sub%03.0f_sess%03.0f_fil001.mat',subID,i));
 %         if exist(fname_target,'file')
 %             D{i} = spm_eeg_load(fname_target);
 %         else
