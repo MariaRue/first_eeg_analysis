@@ -60,9 +60,9 @@ if tf_analysis
     for i = 1:nSess
         fname_target = fullfile(EEGdatadir,...
             sprintf('tf_fdspmeeg_sub%03.0f_sess%03.0f_fil001.mat',subID,i));
-%         if exist(fname_target,'file')
-%             D{i} = spm_eeg_load(fname_target);
-%         else
+        if exist(fname_target,'file')
+            D{i} = spm_eeg_load(fname_target);
+        else
             S = [];
             S.D = D{i};
             S.channels = 'All';
@@ -70,7 +70,7 @@ if tf_analysis
             S.method = 'morlet';
             S.phase = 1;
             D{i} = spm_eeg_tf(S);
-%         end
+        end
     end
 end
 
@@ -296,16 +296,16 @@ for i = 1:nSess
         regressor_list(6).nLagsForward = 500;
         regressor_list(6).name = 'trial start';
         
-%         regressor_list(7).value = EEGdat{i}{b}(63,:,:)';
-%         regressor_list(7).nLagsBack = 0;
-%         regressor_list(7).nLagsForward = 0;
-%         regressor_list(7).name = 'confound_EOG_reg_ver';
+        regressor_list(7).value = EEGdat{i}{b}(63,:,:)';
+        regressor_list(7).nLagsBack = 0;
+        regressor_list(7).nLagsForward = 0;
+        regressor_list(7).name = 'confound_EOG_reg_ver';
+        
+        regressor_list(8).value = EEGdat{i}{b}(64,:,:)';
+        regressor_list(8).nLagsBack = 0;
+        regressor_list(8).nLagsForward = 0;
+        regressor_list(8).name = 'confound_EOG_reg_hor';
 %         
-%         regressor_list(8).value = EEGdat{i}{b}(64,:,:)';
-%         regressor_list(8).nLagsBack = 0;
-%         regressor_list(8).nLagsForward = 0;
-%         regressor_list(8).name = 'confound_EOG_reg_hor';
-% %         
         
         
      
@@ -331,16 +331,25 @@ for i = 1:nSess
     end
 end
 
-channel_ind = 34; %channel of interest (CPz = 40);
+channel_ind = 2; %channel of interest (CPz = 40);
 chanlabel = D{1}.chanlabels(channel_ind); chanlabel = chanlabel{1};
+
+if tf_analysis
 frequency = 10; 
 freqlabel = D{1}.frequencies(frequency);
+end 
 
-for r = 1:5
+for r = 1:6
     figure;
-    plotmse(squeeze(betas{frequency}{r}(channel_ind,:,:)),2,time_idx(r).timebins);
-    xlabel(sprintf('Influence of %s on EEG at time (t+X) ms',time_idx(r).name));
-    title(sprintf('Channel: %s Frequency: %d' ,chanlabel, freqlabel));
+    if tf_analysis
+            plotmse(squeeze(betas{frequency}{r}(channel_ind,:,:)),2,time_idx(r).timebins);
+              title(sprintf('Channel: %s Frequency: %dHz' ,chanlabel, freqlabel));
+    else 
+    plotmse(squeeze(betas{r}(channel_ind,:,:)),2,time_idx(r).timebins);
+  
+    title(sprintf('Channel: %s' ,chanlabel));
+    end
+  xlabel(sprintf('Influence of %s on EEG at time (t+X) ms',time_idx(r).name));
     tidyfig;
 end
 

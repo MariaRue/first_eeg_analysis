@@ -114,11 +114,11 @@ end
 
 mean_all_mid = nanmean([data_cor_right_mid;data_cor_left_mid]); 
 
-subplot(3,1,2)
+subplot(3,1,3)
 plot(mean_all_mid,'r')
 ylabel('mean voltage')
 xlabel('msec')
-title('mid coherences')
+title('low coherences')
 
 %% low coherences 
 
@@ -145,12 +145,12 @@ end
 
 mean_all_low = nanmean([data_cor_right_low;data_cor_left_low]); 
 
-subplot(3,1,3)
+subplot(3,1,2)
 plot(mean_all_low,'g')
 
 ylabel('mean voltage')
 xlabel('msec')
-title('low coherences')
+title('medium coherences')
 
 %% look at single channels across trials 
 
