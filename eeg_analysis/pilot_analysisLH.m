@@ -33,6 +33,7 @@ for i = 1:nSess
         sprintf('fdspmeeg_sub%03.0f_sess%03.0f_fil001.mat',subID,i));
     if exist(fname_target,'file')
         D{i} = spm_eeg_load(fname_target);
+        O{i} = spm_eeg_load(fname_target);
     else
         S = [];
         S.dataset = fullfile(EEGdatadir,sprintf('sub%03.0f_sess%03.0f_fil001.set',subID,i));
@@ -89,6 +90,7 @@ nBlocks = 4;
 for i = 1:nSess %loop over sessions
     eeg_events = D{i}.events; %events in EEG data
     eob = find([eeg_events.value]==210); %end of block trigger
+ 
     if length(eob)~=nBlocks
         error('didn''t find 4 end of blocks');
     else
@@ -199,7 +201,8 @@ for i = 1:nSess
         
         %grab the relevant data
         if tf_analysis
-        EEGdat{i}{b} = D{i}(:,:,block_start_eeg_idx(i,b):block_end_eeg_idx(i,b),1);   
+        EEGdat{i}{b} = D{i}(:,:,block_start_eeg_idx(i,b):block_end_eeg_idx(i,b),1); 
+        EEG_time{i}{b} = O{i}(:,block_start_eeg_idx(i,b):block_end_eeg_idx(i,b),1);
         else 
         EEGdat{i}{b} = D{i}(:,block_start_eeg_idx(i,b):block_end_eeg_idx(i,b),1);
         end 
@@ -214,14 +217,19 @@ nChannels = 64;
 nSess = 5;
 for i = 1:nSess
     
+    disp(i); 
+    
     if i == 1
         
         nBlocks = 3;
+        
     else
         nBlocks = 4;
     end
     
     for b = 1:nBlocks
+        
+        disp(b); 
         nLags = 150; %number of lags to test (100 lags = 1s)
         
         coherence = bhv{i}.S.coherence_frame{b}; %vector of coherence levels for this block
@@ -296,12 +304,12 @@ for i = 1:nSess
         regressor_list(6).nLagsForward = 500;
         regressor_list(6).name = 'trial start';
         
-        regressor_list(7).value = EEGdat{i}{b}(63,:,:)';
+        regressor_list(7).value = EEG_time{i}{b}(63,:,:)';
         regressor_list(7).nLagsBack = 0;
         regressor_list(7).nLagsForward = 0;
         regressor_list(7).name = 'confound_EOG_reg_ver';
         
-        regressor_list(8).value = EEGdat{i}{b}(64,:,:)';
+        regressor_list(8).value = EEG_time{i}{b}(64,:,:)';
         regressor_list(8).nLagsBack = 0;
         regressor_list(8).nLagsForward = 0;
         regressor_list(8).name = 'confound_EOG_reg_hor';
@@ -331,6 +339,9 @@ for i = 1:nSess
     end
 end
 
+savefile = fullfile(EEGdatadir,'betas_tf.mat'); 
+save(savefile, 'betas'); 
+
 channel_ind = 2; %channel of interest (CPz = 40);
 chanlabel = D{1}.chanlabels(channel_ind); chanlabel = chanlabel{1};
 
@@ -338,6 +349,8 @@ if tf_analysis
 frequency = 10; 
 freqlabel = D{1}.frequencies(frequency);
 end 
+
+
 
 for r = 1:6
     figure;
