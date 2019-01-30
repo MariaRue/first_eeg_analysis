@@ -16,4 +16,4 @@ addpath(genpath('/Users/Maria/Documents/Matlab/edf-converter'));
 addpath('/Users/Maria/Documents/data/data.continuous_rdk/eyetracker_pilot/sub003/short_session_wo_EEG'); 
 
 %%  ---%%% read in the edf data %%%---
-edf1 = Edf2Mat('s0se24.edf'); 
+edf1 = Edf2Mat('/Users/Maria/Documents/data/data.continuous_rdk/eyetracker_pilot/sub003/short_session_wo_EEG/s0se24.edf'); 
