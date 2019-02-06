@@ -342,7 +342,7 @@ end
 savefile = fullfile(EEGdatadir,'betas_tf.mat'); 
 save(savefile, 'betas'); 
 
-channel_ind = 2; %channel of interest (CPz = 40);
+channel_ind = 40; %channel of interest (CPz = 40);
 chanlabel = D{1}.chanlabels(channel_ind); chanlabel = chanlabel{1};
 
 if tf_analysis
@@ -366,24 +366,17 @@ for r = 1:6
     tidyfig;
 end
 
-%
-% figure;
-% plotmse(squeeze(betas_coi(:,4,:)),2,time_label2);
-% xlabel('Influence of button press during coherent motion on future EEG at time t');
-% title(sprintf('Channel: %s',chanlabel));
-% tidyfig;
-%
-% figure;
-% plotmse(squeeze(betas_coi(:,5,:)),2,time_label2);
-% xlabel('Influence of button press during incoherent motion on future EEG at time t');
-% title(sprintf('Channel: %s',chanlabel));
-% tidyfig;
-%
-% figure;
-% plotmse(squeeze(betas_coi(:,6,:)),2,time_label2);
-% xlabel('Influence of trial period on future EEG at time t');
-% title(sprintf('Channel: %s',chanlabel));
-% tidyfig;
+% plot frequency responses for each regressors as map 
+if tf_analysis 
+for r = 1:6 
+    
+    
+    
+    
+    
+    
+end 
+end 
 
 %% %% open fieldtrip - make topoplot of regressors with fieldtrip
 
@@ -466,49 +459,7 @@ for i = 1:nSess
         % vector of button presses during intertrial periods
         
         
-        nF = length(coherence);
-        
-        clear reg;
-        for l = 1:nLags
-            lback = l-1; %this is how many 'back' in time this regressor looks
-            
-            % regressor for ERP
-            reg_zp = [zeros(nLags,1); coherence_jump]; %zero pad regressor
-            reg(:,l) =  reg_zp(nLags-lback+1:length(reg_zp)-lback);
-            
-            % regressor for influence of coherence magnitude of step
-            reg_zp = [zeros(nLags,1); coherence_jump_level]; %zero pad regressor
-            reg(:,l+nLags) =  reg_zp(nLags-lback+1:length(reg_zp)-lback);
-            
-            % regressor for influence of button press in trial period
-            reg_zp = [zeros(nLags,1); button_press]; %zero pad regressor
-            reg(:,l+2.*nLags) =  reg_zp(nLags-lback+1:length(reg_zp)-lback);
-            
-            
-            % regressor for how button press going forward in trial period
-            % - probably failed
-            reg_zp = [button_press; zeros(nLags,1); ]; %zero pad regressor
-            reg(:,l+3.*nLags) =  reg_zp(l:length(reg_zp)-nLags + lback);
-            
-            
-            % regressor for how button press going forward in intertrial
-            % period - probably failed
-            reg_zp = [button_press_incoh_motion; zeros(nLags,1); ]; %zero pad regressor
-            reg(:,l+4.*nLags) =  reg_zp(l:length(reg_zp)-nLags + lback);
-            
-            
-            % regressor for influence of last trial period on signal -
-            % failed
-            reg_zp = [mean_coherence; zeros(nLags,1); ]; %zero pad regressor
-            reg(:,l+5.*nLags) =  reg_zp(l:length(reg_zp)-nLags + lback);
-            
-            
-            nReg = 6; %number of regressors
-            
-            confound_EOG_reg = EEGdat{i}{b}(63:64,:)'; %EOG channels - include as confound regressor
-            
-        end
-        
+     
         
         
         tmp = (pinv([reg confound_EOG_reg])*EEGdat{i}{b}')';
@@ -553,24 +504,7 @@ for block = 1:4
     xlabel('Influence of button press at time (t-X) ms on EEG at time t');
     title(sprintf('Channel: %s Block: %s',chanlabel, condition{block}));
     tidyfig;
-    
-    % figure;
-    % plotmse(squeeze(betas_coi(:,4,:)),2,time_label2);
-    % xlabel('Influence of button press during coherent motion on future EEG at time t');
-    % title(sprintf('Channel: %s Block: %s',chanlabel, condition{block}));
-    % tidyfig;
-    %
-    % figure;
-    % plotmse(squeeze(betas_coi(:,5,:)),2,time_label2);
-    % xlabel('Influence of button press during incoherent motion on future EEG at time t');
-    % title(sprintf('Channel: %s Block: %s',chanlabel,condition{block}));
-    % tidyfig;
-    %
-    % figure;
-    % plotmse(squeeze(betas_coi(:,6,:)),2,time_label2);
-    % xlabel('Influence of trial period on future EEG at time t');
-    % title(sprintf('Channel: %s Block: %s',chanlabel, condition{block}));
-    % tidyfig;
+   
     
 end
 
