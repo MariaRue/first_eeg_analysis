@@ -17,8 +17,8 @@ switch current_user
         addpath('/Users/maria/Documents/matlab/spm12');
         addpath('/Users/maria/Documents/MATLAB/fieldtrip'); % fieldtrip tool box to analyse data
         scriptdir = fullfile('/Users/maria/Documents/Matlab/continuous_eeg_analysis/eeg_analysis');
-        EEGdatadir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','EEG_pilot','sub003','EEG');
-        BHVdatadir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','EEG_pilot','sub003','behaviour');
+        EEGdatadir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','eyetracker_pilot','sub001','short_session_wo_EEG');
+        BHVdatadir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','eyetracker_pilot','sub001','short_session_wo_EEG');
         ft_defaults
 end
 
@@ -35,7 +35,7 @@ for i = 1:nSess
         D{i} = spm_eeg_load(fname_target);
     else
         S = [];
-        S.dataset = fullfile(EEGdatadir,sprintf('sub%03.0f_sess%03.0f_fil001.set',subID,i));
+        S.dataset = fullfile(EEGdatadir,sprintf('LHtrig1.set',subID,i));
         S.mode = 'continuous';
         D{i} = spm_eeg_convert(S);
         
