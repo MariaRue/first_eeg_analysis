@@ -1,4 +1,4 @@
-current_user = 'MR';
+current_user = 'eyetrig';
 
 tf_analysis = 1; % do time-frequency rahter than time-domain analysis?
 
@@ -20,23 +20,38 @@ switch current_user
         EEGdatadir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','EEG_pilot','sub003','EEG');
         BHVdatadir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','EEG_pilot','sub003','behaviour');
         ft_defaults
+        
+    case 'eyetrig'
+                addpath('/Users/maria/Documents/matlab/spm12');
+        addpath('/Users/maria/Documents/MATLAB/fieldtrip'); % fieldtrip tool box to analyse data
+        scriptdir = fullfile('/Users/maria/Documents/Matlab/continuous_eeg_analysis/eeg_analysis');
+        EEGdatadir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','EEG_pilot','sub000','eyetracker_test', 'eeg_trigger');
+        BHVdatadir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','EEG_pilot','sub000','eyetracker_test', 'behaviour');
 end
 
 %% convert EEG data; downsample to 100 Hz; bandpass filter 0.1-30Hz
 
 subID = 3;
-nSess = 5; %number of sessions
+nSess = 2; %number of sessions
 
 cd(EEGdatadir);
 for i = 1:nSess
+    
+  
     fname_target = fullfile(EEGdatadir,...
         sprintf('fdspmeeg_sub%03.0f_sess%03.0f_fil001.mat',subID,i));
+
+    
     if exist(fname_target,'file')
         D{i} = spm_eeg_load(fname_target);
         O{i} = spm_eeg_load(fname_target);
     else
         S = [];
+        
+        
         S.dataset = fullfile(EEGdatadir,sprintf('sub%03.0f_sess%03.0f_fil001.set',subID,i));
+          
+        
         S.mode = 'continuous';
         D{i} = spm_eeg_convert(S);
         
