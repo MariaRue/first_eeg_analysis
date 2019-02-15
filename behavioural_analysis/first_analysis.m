@@ -2,19 +2,21 @@
 % 
 % Data = load ('sub002_sess010_behav.mat');
 
-addpath('/Users/maria/Desktop/task_for_windows/behaviour'); 
-Data = load ('sub000_sess067_behav.mat');
+addpath('/Users/maria/Documents/data/data.continuous_rdk/EEG_pilot/sub004/behaviour/'); 
+Data = load ('sub004_sess004_behav.mat');
 
 %% 
 Stimulus = Data.S;
 response = Data.respMat;
 
 
-for i = 1:4
+for i = 1:6
     idx_correct = response{i}(:,7) == 1;
     idx_incorrect = response{i}(:,7) == 0;
     idx_early = response{i}(:,7) == 2;
     idx_missed = response{i}(:,7) == 3;
+    
+
     
     frame_correct = response{i}(idx_correct,6);
     frame_incorrect = response{i}(idx_incorrect,6);
@@ -53,10 +55,20 @@ for i = 1:4
         legend(l,{'correct','incorrect','missed','early'})
     else
         
-        plot(frame_correct,ones(numel(frame_correct),1),'g.')
+        plot(frame_correct,ones(numel(frame_correct),1),'g.','MarkerSize',15)
         plot(frame_incorrect,ones(numel(frame_incorrect),1),'rx')
         plot(frame_missed,ones(numel(frame_missed),1),'kd')
         plot(frame_early,ones(numel(frame_early),1),'bo')
+        
+        try
+        if sum(idx_incorrect) == 0
+             legend({'coherence', 'mean coherence', 'correct','missed','early'})
+        else 
+         legend({'coherence', 'mean coherence', 'correct','incorrect','missed','early'})
+        end 
+        catch
+            %executed if error
+        end
         
         ylim([-1.5 1.5]);
         title(t)

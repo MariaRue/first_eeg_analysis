@@ -12,18 +12,207 @@
 
 % path to eyetracker 
 addpath(genpath('/Users/Maria/Documents/Matlab/edf-converter')); 
+path = 'eyetrack'; 
+% path = 'pilot'; 
+switch  path
+    
+    case 'pilot'
+        
+       
 
-addpath('/Users/Maria/Documents/data/data.continuous_rdk/eyetracker_pilot/sub003/short_session_wo_EEG'); 
+
+addpath('/Users/Maria/Documents/data/data.continuous_rdk/EEG_pilot/sub004/eye'); 
+
+filepath =  '/Users/Maria/Documents/data/data.continuous_rdk/EEG_pilot/sub004/eye';
+bhvpath = '/Users/Maria/Documents/data/data.continuous_rdk/EEG_pilot/sub004/behaviour';
+
+    case 'eyetrack'
+       
+
+addpath('/Users/Maria/Documents/data/data.continuous_rdk/EEG_pilot/sub001/eyetracker_test/eyetracker'); 
+
+filepath =  '/Users/Maria/Documents/data/data.continuous_rdk/EEG_pilot/sub001/eyetracker_test/eyetracker';
+bhvpath = '/Users/Maria/Documents/data/data.continuous_rdk/EEG_pilot/sub001/eyetracker_test/behaviour'; 
+        
+end 
+
 
 %%  ---%%% read in the edf data and behavioural data%%%---
-edf1 = Edf2Mat('/Users/Maria/Documents/data/data.continuous_rdk/eyetracker_pilot/sub003/short_session_wo_EEG/s0se24.edf'); 
 
-bhv = load('sub000_sess024_behav.mat');
+nsess = 2; 
+subid = 0; 
+session = [28,29]; 
+for i  = 1:nsess 
+    filename = sprintf('s%dse%d.edf',subid,session(i));
+    file_to_load = fullfile(filepath,filename); 
+
+edf{i} = Edf2Mat(file_to_load); 
+
+bhv_file = sprintf('sub%03.0f_sess%03.0f_behav.mat',subid,session(i));
+bhv_to_load = fullfile(bhvpath, bhv_file); 
+bhv{i} = load(bhv_to_load);
+
+end 
+
+%% get events with frames for actual task 
+
+
+for l = 1:nsess
+     ntriggers =  length(edf{l}.Events.Messages.info); % number of triggers send during session 
+   
+eyetriggers{l} = zeros(length(edf{l}.Samples.time),3); % vector with nSamplesx2 with first column trigger val and second column frame
+idx = 0; 
+for i = 18:ntriggers % loop through triggers that are actually session related 
+    Tmidx = 0;
+    tcounter = 0; 
+    idx = idx+1; 
+ 
+    
+    Tridx = find(edf{l}.Events.Messages.info{i} == 'T'); % idx that divides frame and trigger number  
+    while ~any(Tmidx)
+    
+    
+    Tmidx = find(edf{l}.Samples.time == (edf{l}.Events.Messages.time(i)+tcounter));
+    
+    tcounter = tcounter + 1; 
+    % find sample idx 
+    end 
+    
+    
+    frame = str2double(edf{l}.Events.Messages.info{i}(2:Tridx-1)); % convert frame number in double 
+    
+    trigger = str2double(edf{l}.Events.Messages.info{i}(Tridx+1:end)); % convert trigger in double 
+
+    eyetriggers{l}(idx,:)  = [trigger, Tmidx, idx]; % insert in matrix 
+    
+   
+end 
+end 
+%% separate by block and annulus 
+
+for i = 1:4
+    
+    annulusY{i} = []; 
+    normalY{i} = []; 
+    
+        annulusX{i} = []; 
+    normalX{i} = []; 
+    
+end 
+
+
+for i = 1:nsess 
+    
+  
+
+    % find start and end of block 
+    estart = find(eyetriggers{i}(:,1)==11); 
+    eend = find(eyetriggers{i}(:,1)==210); 
+    
+%     % for Laurences data: 
+    if i == 1 
+        
+        estart(1) = 1; 
+        estart(2) = eend(1) + 1; 
+        estart(3) = eend(2) + 1; 
+       estart(4) = eend(3) + 1; 
+       
+    elseif i == 2 
+        
+        estart = [1 1158 2327 3393];
+        
+    end 
+    
+   
+%     if i == 1 % for Ryans data  
+%         
+%         estart = [estart(1:2);2223;estart(3)];
+%         end 
+%            
+    
+    if length(estart) < 4 
+        keyboard; 
+    end 
+    
+    
+    
+    for block = 1:4
+        
+        start_idx = eyetriggers{i}(estart(block),2); 
+        end_idx = eyetriggers{i}(eend(block),2); 
+        
+    b = str2double(bhv{i}.S.block_ID_cells{block}); 
+    
+    
+    
+    % if i > 1 && mod(i,2) == 0 % Rayan 
+    if session(i) == 28
+        
+        annulusX{b} = [annulusX{b}; edf{i}.Samples.posX(start_idx : end_idx)]; 
+        annulusY{b} = [annulusY{b}; edf{i}.Samples.posY(start_idx : end_idx)]; 
+         
+    else 
+       normalX{b} = [normalX{b}; edf{i}.Samples.posX(start_idx : end_idx)]; 
+       normalY{b} = [normalY{b}; edf{i}.Samples.posY(start_idx : end_idx)];  
+       
+        
+    end % annulus 
+    
+    
+    
+    end 
+    
+    
+end 
+%% plot data 
+
+
+block_cond{1} = 'ITI short, INTE short';
+block_cond{2} = 'ITI short, INTE long';
+block_cond{3} = 'ITI long, INTE short';
+block_cond{4} = 'ITI long, INTE long';
+
+for i = 1:4
+subplot(2,2,i)
+hold on 
+
+histogram(annulusX{i}(:),'FaceColor',[1 0 0], 'EdgeColor',[1 0 0])
+histogram(normalX{i}(:),'FaceColor',[0 1 0],'EdgeColor',[0 1 0],'FaceAlpha', 0.5, 'EdgeAlpha', 0.5)
+
+legend('annulus on', 'annulus off')
+
+
+title(block_cond{i})
+
+hold off
+
+
+
+end 
+%%
+
+for i = 1:4
+subplot(2,2,i)
+hold on 
+
+histogram(annulusY{i}(:),'FaceColor',[1 0 0], 'EdgeColor',[1 0 0])
+histogram(normalY{i}(:),'FaceColor',[0 1 0],'EdgeColor',[0 1 0],'FaceAlpha', 0.5, 'EdgeAlpha', 0.5)
+
+legend('annulus on', 'annulus off')
+
+
+title(block_cond{i})
+
+hold off
+
+
+end 
 
 
 %% get events for eye calib in Matlab with timings 
 
 
+for i = 1:nsess
 
 event_idx = 9:17; % the first 8 events are eyetracking internal and not of use for us 
 
@@ -39,6 +228,7 @@ for idx = event_idx
     eye_calib_event_idx(idx_count) = find(edf1.Samples.time == eye_calib_events_time(idx_count)); 
  
 end 
+end
 
 % now plot the x and y horizontal and vertical positions for both eyes 
 
@@ -74,28 +264,7 @@ title('matlab calibration check - dots appeared in every corner, centre and in t
 tidyfig
 
 
-%% get events with frames for actual task 
 
-ntriggers =  length(edf1.Events.Messages.info); % number of triggers send during session 
-eyetriggers = zeros(length(edf1.Samples.time),2); % vector with nSamplesx2 with first column trigger val and second column frame
-
-idx = 0; 
-for i = 18:ntriggers % loop through triggers that are actually session related 
-    
-    idx = idx+1; 
-    
-    Tridx = find(edf1.Events.Messages.info{i} == 'T'); % idx that divides frame and trigger number  
-    Tmidx = find(edf1.Samples.time == edf1.Events.Messages.time(i)); % find sample idx 
-    
-    
-    frame = str2double(edf1.Events.Messages.info{i}(2:Tridx-1)); % convert frame number in double 
-    
-    trigger = str2double(edf1.Events.Messages.info{i}(Tridx+1:end)); % convert trigger in double 
-    
-    eyetriggers(Tmidx,:)  = [trigger, frame]; % insert in matrix 
-    
-   
-end 
 
 
 

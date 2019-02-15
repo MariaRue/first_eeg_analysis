@@ -17,26 +17,54 @@ switch current_user
         addpath('/Users/maria/Documents/matlab/spm12');
         addpath('/Users/maria/Documents/MATLAB/fieldtrip'); % fieldtrip tool box to analyse data
         scriptdir = fullfile('/Users/maria/Documents/Matlab/continuous_eeg_analysis/eeg_analysis');
+<<<<<<< HEAD
         EEGdatadir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','eyetracker_pilot','sub001','short_session_wo_EEG');
         BHVdatadir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','eyetracker_pilot','sub001','short_session_wo_EEG');
+=======
+        EEGdatadir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','EEG_pilot','sub004','EEG');
+        BHVdatadir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','EEG_pilot','sub004','behaviour');
+>>>>>>> e1fbf41ee868a26e75fcbc2d8a118587508109d9
         ft_defaults
+        
+    case 'eyetrig'
+                addpath('/Users/maria/Documents/matlab/spm12');
+        addpath('/Users/maria/Documents/MATLAB/fieldtrip'); % fieldtrip tool box to analyse data
+        scriptdir = fullfile('/Users/maria/Documents/Matlab/continuous_eeg_analysis/eeg_analysis');
+        EEGdatadir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','EEG_pilot','sub000','eyetracker_test', 'eeg_trigger');
+        BHVdatadir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','EEG_pilot','sub000','eyetracker_test', 'behaviour');
 end
 
 %% convert EEG data; downsample to 100 Hz; bandpass filter 0.1-30Hz
 
-subID = 3;
-nSess = 5; %number of sessions
+subID = 4;
+nSess = 2; %number of sessions
 
 cd(EEGdatadir);
 for i = 1:nSess
-    fname_target = fullfile(EEGdatadir,...
-        sprintf('fdspmeeg_sub%03.0f_sess%03.0f_fil001.mat',subID,i));
+    
+  
+    %fname_target = fullfile(EEGdatadir,...
+        %sprintf('fdspmeeg_sub%03.0f_sess%03.0f_fil001.mat',subID,i));
+
+       fname_target = fullfile(EEGdatadir,...
+        sprintf('fdspmeeg_sub%03.0f_sess%03.0f_eeg.mat',subID,i));
+        
+        
     if exist(fname_target,'file')
         D{i} = spm_eeg_load(fname_target);
         O{i} = spm_eeg_load(fname_target);
     else
         S = [];
+<<<<<<< HEAD
         S.dataset = fullfile(EEGdatadir,sprintf('LHtrig1.set',subID,i));
+=======
+        
+        
+        %S.dataset = fullfile(EEGdatadir,sprintf('sub%03.0f_sess%03.0f_fil001.set',subID,i));
+        
+          S.dataset = fullfile(EEGdatadir,sprintf('sub%03.0f_sess%03.0f_eeg.set',subID,i));
+        
+>>>>>>> e1fbf41ee868a26e75fcbc2d8a118587508109d9
         S.mode = 'continuous';
         D{i} = spm_eeg_convert(S);
         
@@ -214,7 +242,7 @@ end
 
 clear betas
 nChannels = 64;
-nSess = 5;
+nSess = 2;
 for i = 1:nSess
     
     disp(i); 
@@ -228,6 +256,10 @@ for i = 1:nSess
     end
     
     for b = 1:nBlocks
+        
+        if i == 1 
+            b = b+ 1;
+        end 
         
         disp(b); 
         nLags = 150; %number of lags to test (100 lags = 1s)
@@ -304,12 +336,12 @@ for i = 1:nSess
         regressor_list(6).nLagsForward = 500;
         regressor_list(6).name = 'trial start';
         
-        regressor_list(7).value = EEG_time{i}{b}(63,:,:)';
+        regressor_list(7).value = EEGdat{i}{b}(63,:,:)';
         regressor_list(7).nLagsBack = 0;
         regressor_list(7).nLagsForward = 0;
         regressor_list(7).name = 'confound_EOG_reg_ver';
         
-        regressor_list(8).value = EEG_time{i}{b}(64,:,:)';
+        regressor_list(8).value = EEGdat{i}{b}(64,:,:)';
         regressor_list(8).nLagsBack = 0;
         regressor_list(8).nLagsForward = 0;
         regressor_list(8).name = 'confound_EOG_reg_hor';
