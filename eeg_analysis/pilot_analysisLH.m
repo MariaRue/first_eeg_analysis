@@ -21,9 +21,9 @@ switch current_user
         % EEGdatadir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','eyetracker_pilot','sub001','short_session_wo_EEG');
         % BHVdatadir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','eyetracker_pilot','sub001','short_session_wo_EEG');
 
-        EEGdatadir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','EEG_pilot','sub004','EEG');
-        BHVdatadir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','EEG_pilot','sub004','behaviour');
-
+        EEGdatadir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','EEG_pilot','sub003','EEG');
+        BHVdatadir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','EEG_pilot','sub003','behaviour');
+ BHVdatadir2= fullfile('/Users/maria/Documents/data/data.continuous_rdk','EEG_pilot','sub003','behaviour');
         ft_defaults
         
     case 'eyetrig'
@@ -36,7 +36,7 @@ end
 
 %% convert EEG data; downsample to 100 Hz; bandpass filter 0.1-30Hz
 
-subID = 4;
+subID = 3;
 nSess = 4; %number of sessions
 
 cd(EEGdatadir);
@@ -50,6 +50,7 @@ for i = 1:nSess
        % sprintf('fdspmeeg_sub%03.0f_sess%03.0f_eeg.mat',subID,i));
         
         
+       
     if exist(fname_target,'file')
         D{i} = spm_eeg_load(fname_target);
         O{i} = spm_eeg_load(fname_target);
@@ -107,7 +108,7 @@ end
 %% load in behavioural data
 
 for i = 1:nSess
-    fname_behav = fullfile(BHVdatadir,sprintf('sub%03.0f_sess%03.0f_behav.mat',subID,i));
+    fname_behav = fullfile(BHVdatadir2,sprintf('sub%03.0f_sess%03.0f_behav.mat',subID,i));
     bhv{i} = load(fname_behav);
 end
 
@@ -115,33 +116,33 @@ end
 %% align behavioural data with EEG data
 
 nBlocks = 4;
-nSess = 2;
+nSess = 3;
   for i = 1:nSess %loop over sessions
     
    nBlocks = 4;
     eeg_events = D{i}.events; %events in EEG data
     eob = find([eeg_events.value]==210); %end of block trigger
-    % sob = find([eeg_events.value]== 11);
+%     sob = find([eeg_events.value]== 11);
  
     if length(eob)~=nBlocks 
         error('didn''t find 4 end of blocks');
 %     elseif length(sob) ~= nBlocks
-%         error('didn''t find 4 start of blocks');
+%       error('didn''t find 4 start of blocks');
     else
-         eob = [0 eob];
+          eob = [0 eob];
         
-        if i == 4 
-            nBlocks = 2; 
-            
-        else 
-            nBlocks = 4; 
-        end 
+%         if i == 4 
+%             nBlocks = 2; 
+%             
+%         else 
+%             nBlocks = 4; 
+%         end 
         for b = 1:nBlocks% loop over blocks
            
-            if i == 4 
-                b = b+2; 
-            end
-%             
+%             if i == 4 
+%                 b = b+2; 
+%             end
+% %             
             
             %a number of triggers in S.trigger_vals haven't made it into
             %the EEG data. We now try to correct this problem, making
@@ -151,7 +152,7 @@ nSess = 2;
             tvind = find(trigger_vals_behav); tvlist = trigger_vals_behav(tvind); % a list of all the trigger values in S.trigger vals
             
            eeg_events_block = eeg_events(eob(b)+1:eob(b+1)); %eeg_events just corresponding to this block
-           % eeg_events_block = eeg_events(sob(b):eob(b)); %eeg_events just corresponding to this block
+%             eeg_events_block = eeg_events(sob(b):eob(b)); %eeg_events just corresponding to this block
             tvlist_eeg = [eeg_events_block.value]'; % a list of all trigger values that are in the EEG data
             
             if length(tvlist)<=length(tvlist_eeg)
@@ -207,7 +208,7 @@ nBlocks = 4;
 for i = 1:nSess
     eeg_events = D{i}.events; %events in EEG data
     eob = find([eeg_events.value]==210); %end of block trigger
-    % sob = find([eeg_events.value]==11);  
+     %sob = find([eeg_events.value]==11);  
     eob = [0 eob];
     
  
@@ -225,7 +226,7 @@ for i = 1:nSess
                 eeg_events_block(s).value;
          
         end
-         
+                    
         
         
         trigger_vals_behav = bhv{i}.S.trigger_vals{b}; %trigger values from behaviour
@@ -264,18 +265,35 @@ for i = 1:nSess
         
         %we may be out here by one sample - I can't quite work the indexing out, but
         %it won't matter in the grand scheme of things...
-        block_start_eeg_idx(i,b) = findc(D{1}.time,eeg_events_block(1).time)-zp_size+best_match(i,b);
+         block_start_eeg_idx(i,b) = findc(D{1}.time,eeg_events_block(1).time)-zp_size+best_match(i,b);
+%                
         block_end_eeg_idx(i,b)   = block_start_eeg_idx(i,b) + nSamplesBehav - 1;
-        
+
+% block_start_eeg_idx(i,b) = findc(D{1}.time,eeg_events_block(1).time);
+% block_end_eeg_idx(i,b)   = findc(D{1}.time,eeg_events_block(end).time);
+           
         %grab the relevant data
 %         if tf_analysis
 %         EEGdat{i}{b} = D{i}(:,:,block_start_eeg_idx(i,b):block_end_eeg_idx(i,b),1); 
 %         EEG_time{i}{b} = O{i}(:,block_start_eeg_idx(i,b):block_end_eeg_idx(i,b),1);
 %         else 
-        EEGdat{i}{b} = D{i}(:,block_start_eeg_idx(i,b):block_end_eeg_idx(i,b),1);
+         EEGdat{i}{b} = D{i}(:,block_start_eeg_idx(i,b):block_end_eeg_idx(i,b),1);
+     %   EEGdat{i}{b} = D{i}(:,eeg_events(sob(b)).time:eeg_events(eob(b)).time,1);
 %         end 
     end
 end
+%% compute the LRP in time domain 
+% response to actual trial periods 
+LH_resp = 205;
+RH_resp = 202;
+
+% according to Luck book C3 (left) and C4 (right) electrodes might be good
+% candidates to calculate the LRP (chan 29 + chan 33)
+
+
+
+
+
 
 
 %% build 'sliding' GLM
