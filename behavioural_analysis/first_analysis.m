@@ -2,12 +2,12 @@
 % 
 % Data = load ('sub002_sess010_behav.mat');
 
-BHVdatadir2 = '/Users/maria/Documents/data/data.continuous_rdk/EEG_pilot/sub004/behaviour/'; 
+BHVdatadir2 = '/Users/maria/Documents/data/data.continuous_rdk/EEG_pilot/sub003/behaviour/'; 
 % Data = load ('sub004_sess001_behav.mat');
 
 
 %% load in behavioural data
-subID = 4; 
+subID = 3; 
 nSess = 4; 
 for i = 1:nSess
     fname_behav = fullfile(BHVdatadir2,sprintf('sub%03.0f_sess%03.0f_behav.mat',subID,i));
