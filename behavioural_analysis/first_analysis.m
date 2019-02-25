@@ -2,12 +2,20 @@
 % 
 % Data = load ('sub002_sess010_behav.mat');
 
-addpath('/Users/maria/Documents/data/data.continuous_rdk/EEG_pilot/sub004/behaviour/'); 
-Data = load ('sub004_sess004_behav.mat');
+BHVdatadir2 = '/Users/maria/Documents/data/data.continuous_rdk/EEG_pilot/sub004/behaviour/'; 
+% Data = load ('sub004_sess001_behav.mat');
 
+
+%% load in behavioural data
+subID = 4; 
+nSess = 4; 
+for i = 1:nSess
+    fname_behav = fullfile(BHVdatadir2,sprintf('sub%03.0f_sess%03.0f_behav.mat',subID,i));
+    bhv{i} = load(fname_behav);
+end
 %% 
-Stimulus = Data.S;
-response = Data.respMat;
+Stimulus = bhv{1}.S;
+response = bhv{1}.respMat;
 
 
 for i = 1:6
@@ -88,5 +96,31 @@ for i = 1:6
     idx_rts = ~isnan(response{i}(:,2));
    mean_rt(i) =  mean(response{i}(idx_rts,2));
 end % loop through blocks
-%% n
+%% look at RTs 
+
+poolRts_INTEL_ITIS = []; 
+poolRts_INTEL_ITIL = []; 
+poolRts_INTES_ITIL = []; 
+poolRts_INTES_ITIS = []; 
+for i = 1:nSess
+    clear response 
+    response = bhv{i}.respMat; 
+for b  = 1:4
+
+    blockID = str2double(bhv{i}.S.block_ID_cells{b}); 
+switch blockID
+    
+    case 1 
+        poolRts_INTES_ITIS = [poolRts_INTES_ITIS; response{b}(response{b}(:,7)==1,2)];
+        
+    case 2 
+        poolRts_INTEL_ITIS =  [poolRts_INTEL_ITIS; response{b}(response{b}(:,7)==1,2)]; 
+    case 3 
+        poolRts_INTES_ITIL = [poolRts_INTES_ITIL; response{b}(response{b}(:,7)==1,2)]; 
+    case 4 
+       poolRts_INTEL_ITIL = [poolRts_INTEL_ITIL; response{b}(response{b}(:,7)==1,2)]; 
+end 
+
+end 
+end 
 

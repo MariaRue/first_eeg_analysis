@@ -116,7 +116,7 @@ end
 %% align behavioural data with EEG data
 
 nBlocks = 4;
-nSess = 3;
+nSess = 4;
   for i = 1:nSess %loop over sessions
     
    nBlocks = 4;
@@ -284,11 +284,79 @@ for i = 1:nSess
 end
 %% compute the LRP in time domain 
 % response to actual trial periods 
-LH_resp = 205;
-RH_resp = 202;
+i = 2; 
+b = 1; 
+LH_trig = 205;
+RH_trig = 201;
 
+% find sample id for these responses 
+LH_resp = find(trigger_vals_eegmatch{i}{b} == LH_trig); 
+RH_resp = find(trigger_vals_eegmatch{i}{b} == RH_trig);
+
+
+
+% figure out what coherence level that responds to 
+for l = 1:length(LH_resp)
+idx = l; 
+
+
+    while bhv{i}.S.mean_coherence_org{b}(LH_resp(idx)) == 0 
+        
+        idx = idx - 1; 
+        
+    end 
+    LH_coh(l) = bhv{i}.S.mean_coherence_org{b}(LH_resp(idx));
+    
+    eegC3L(l,:) = EEGdat{i}{b}(29,LH_resp(l) - 10 : LH_resp(l) + 150);
+    eegC4L(l,:) = EEGdat{i}{b}(33,LH_resp(l) - 10 : LH_resp(l) + 150);
+   
+end
+
+
+
+% figure out what coherence level that responds to 
+for l = 1:length(RH_resp)
+idx = l; 
+
+
+    while bhv{i}.S.mean_coherence_org{b}(RH_resp(idx)) == 0 
+        
+        idx = idx - 1; 
+        
+    end 
+    RH_coh(l) = bhv{i}.S.mean_coherence_org{b}(RH_resp(idx));
+    
+    eegC3R(l,:) = EEGdat{i}{b}(29,RH_resp(l) - 10 : RH_resp(l) + 150);
+    eegC4R(l,:) = EEGdat{i}{b}(33,RH_resp(l) - 10 : RH_resp(l) + 150);
+    
+end
 % according to Luck book C3 (left) and C4 (right) electrodes might be good
 % candidates to calculate the LRP (chan 29 + chan 33)
+
+%%
+
+coh_list = [0.3 0.4 0.5]; 
+for c = 1:3 
+    
+    clear ErightRleft EleftRleft EleftRright ErightRright
+    clear LH_coh_trig RH_coh_trig
+    
+    LH_coh_trig = abs(LH_coh) == coh_list(c); 
+    RH_coh_trig = abs(RH_coh) == coh_list(c); 
+    
+    
+    ErightRleft = mean(eegC4L(LH_coh_trig,:)); 
+    EleftRleft = mean(eegC3L(LH_coh_trig,:)); 
+    
+    EleftRright = mean(eegC3R(RH_coh_trig,:)); 
+    ErightRright = mean(eegC4R(RH_coh_trig,:)); 
+    
+   
+    LRP(c,:) = abs((ErightRleft - EleftRleft)+(EleftRright - ErightRright))/2;
+    
+
+    
+end 
 
 
 
@@ -300,25 +368,25 @@ RH_resp = 202;
 
 clear betas
 nChannels = 64;
-nSess = 2;
+nSess = 4;
 for i = 1:nSess
-    
+           
     disp(i); 
     
-%     if i == 1
-%         
-%         nBlocks = 3;    
-%         
-%     else
-%         nBlocks = 4;
-%     end
+    if i == 1
+        
+        nBlocks = 3;    
+        
+    else
+        nBlocks = 4;
+    end
 %     
     for b = 1:nBlocks
         
-%         if i == 1 
+%         if i == 1     
 %             b = b+ 1;
 %         end 
-        
+         blockID(i,b) = str2num(bhv{i}.S.block_ID_cells{b});
         disp(b); 
         nLags = 150; %number of lags to test (100 lags = 1s)
         
@@ -439,7 +507,7 @@ if tf_analysis
 frequency = 10; 
 freqlabel = D{1}.frequencies(frequency);
 end 
-
+%% 
 
 
 for r = 1:6
@@ -473,10 +541,115 @@ end
 
 % start fieldtrip  and add folders with .mat files with data structure from
 % fieldtrip after pre-processing
-bs = betas(:,:,:,:);
+
+clear bs 
+clear mean_b
+ft_struct.time = time_idx(6).timebins;
+bs = betas{6}(:,:,:,:);
 
 % take the average across sessions
 mean_b = mean(bs,4);
+mean_b = mean(mean_b,3);
+ft_defaults % start fieldtrip
+
+ft_struct.dimord = 'chan_time';
+
+ft_struct.label = D{1}.chanlabels;
+% ft_struct.elec = average_ERP{1}.elec;
+ft_struct.avg = mean_b(:,:);
+
+%% plot topoplots
+
+
+cfg = [];
+% cfg.xlim = [0.3 0.5];  % time limit
+cfg.zlim = [-2 1];  % colour limit
+cfg.layout = 'quickcap64.mat';
+% cfg.parameter = 'individual'; % the default 'avg' is not present in the data
+figure; ft_topoplotER(cfg,ft_struct); colorbar
+
+
+
+
+
+%% repeat the above GLM analysis for different block types
+
+
+clear betas_test
+
+condition{1} = 'ITIs INTs';
+condition{2} = 'ITIs INTL';
+condition{3} = 'ITIL INTs';
+condition{4} = 'ITIL INTL';
+
+for i = 1:4
+    for n = 1:8
+        
+        if i == 2
+        betas_test{i}{n} = nan(64,length(time_idx(n).dm_row_idx),3);
+        else
+        betas_test{i}{n} = nan(64,length(time_idx(n).dm_row_idx),4);
+        end 
+    end
+    
+    cond{i} = 0; 
+end
+
+for i = 1:nSess
+    
+    if i == 1 
+        nBlocks = 3;
+    else
+        nBlocks = 4; 
+    end 
+for block = 1:nBlocks
+    idx = blockID(i,block);
+    
+
+    cond{idx} = cond{idx} + 1; 
+    
+    
+    
+    for r = 1:8
+    
+    betas_test{idx}{r}(:,:,cond{idx}) = betas{r}(:,:,i,block);
+    end 
+end 
+end 
+    %% 
+    for c = 1:4
+for r = 1:6
+    figure;
+  
+    plotmse(squeeze(betas_test{3}{r}(channel_ind,:,:)),2,time_idx(r).timebins);
+  
+    title(sprintf('Channel: %s' ,chanlabel));
+   
+    
+  xlabel(sprintf('Influence of %s on EEG at time (t+X) ms',time_idx(r).name));
+    tidyfig;
+    
+    data = betas_test{c}{r}(channel_ind,:,:); 
+    cond{c}{r} = mean(squeeze(data),2); 
+end
+    end
+    
+    %%  hold on 
+    hold on 
+    for c = 1:4
+    plot(cond{c}{6})
+    legend('ITIS_INTES', 'ITIS_INTEL', 'ITIL_INTES', 'ITIL_INTEL')
+    end
+    
+%% blot betas in topoplot for different conditions 
+
+
+% start fieldtrip  and add folders with .mat files with data structure from
+% fieldtrip after pre-processing
+bs = betas_test{1}{3}(:,:,:,:);
+
+% take the average across sessions
+mean_b = nanmean(bs,3);
 
 ft_defaults % start fieldtrip
 
@@ -484,10 +657,9 @@ ft_struct.dimord = 'chan_time';
 
 ft_struct.label = D{1}.chanlabels;
 % ft_struct.elec = average_ERP{1}.elec;
-ft_struct.avg = mean_b(:,:,3);
-ft_struct.time = time_label;
-
-%% plot topoplots
+ft_struct.avg = mean_b(:,:);
+ft_struct.time = time_idx(3).timebins;
+%% plot topoplots for different conditions
 
 
 cfg = [];
@@ -499,103 +671,5 @@ figure; ft_topoplotER(cfg,ft_struct); colorbar
 
 
 
-
-
-%% repeat the above GLM analysis for different block types
-
-clear betas
-clear betas_test
-nChannels = 64;
-nSess = 5;
-
-for i = 1:nSess
-    
-    if i == 1
-        
-        nBlocks = 3;
-    else
-        nBlocks = 4;
-    end
-    
-    for b = 1:nBlocks
-        nLags = 150; %number of lags to test (100 lags = 1s)
-        
-        
-        blockID(i,b) = str2num(bhv{i}.S.block_ID_cells{b});
-        
-        
-        coherence = bhv{i}.S.coherence_frame{b}; %vector of coherence levels for this block
-        coherence(coherence>1) = 1; coherence(coherence<-1) = -1; % in presentation code, if abs(coherence) is >1
-        % then *all* dots move in same direction, i.e. coherence = 1
-        
-        
-        mean_coherence = bhv{i}.S.mean_coherence{b}; % vector of mean coherences of this block - to figure out trial periods
-        
-        
-        %coherence = coherence(1:1000); % for piloting, delete once complete
-        coherence_jump = abs([0; diff(coherence)])>0; %vector of coherence 'jumps'
-        coherence_jump_level = coherence_jump.*abs(coherence); %vector of coherence 'jumps'
-        
-        integration_start = abs([0; diff(mean_coherence)])>0; %vector of trial starts
-        
-        button_press = trigger_vals_eegmatch{i}{b} == 201 |...
-            trigger_vals_eegmatch{i}{b} == 202;
-        % vector of button presses during trial periods
-        %                        trigger_vals_eegmatch{i}{b} == 205 |...
-        %                        trigger_vals_eegmatch{i}{b} == 206;
-        
-        button_press_incoh_motion = trigger_vals_eegmatch{i}{b} == 205 |...
-            trigger_vals_eegmatch{i}{b} == 206;
-        % vector of button presses during intertrial periods
-        
-        
-     
-        
-        
-        tmp = (pinv([reg confound_EOG_reg])*EEGdat{i}{b}')';
-        betas(:,:,:,i,b) = reshape(tmp(:,1:nLags*nReg),nChannels,nLags,nReg); %channels * lags * regressors * sessions * blocks
-    end
-end
-
-condition{1} = 'ITIs INTs';
-condition{2} = 'ITIs INTL';
-condition{3} = 'ITIL INTs';
-condition{4} = 'ITIL INTL';
-
-for block = 1:4
-    
-    
-    idx = blockID == block;
-    betas_test = betas(:,:,:,idx);
-    
-    
-    time_label = 0:-10:-(nLags-1)*10;
-    time_label2 = 0:10:(nLags-1)*10;
-    channel_ind =40; %channel of interest (CPz = 40);
-    chanlabel = D{1}.chanlabels(channel_ind); chanlabel = chanlabel{1};
-    
-    betas_coi = squeeze(betas_test(channel_ind,:,:,:,:));
-    betas_coi = betas_coi(:,:,:); %collapse across sessions/blocks
-    
-    figure;
-    plotmse(squeeze(betas_coi(:,1,:)),2,time_label);
-    xlabel('Influence of coherence jump at time (t-X) ms on EEG at time t');
-    title(sprintf('Channel: %s Block: %s',chanlabel, condition{block}));
-    tidyfig;
-    
-    figure;
-    plotmse(squeeze(betas_coi(:,2,:)),2,time_label);
-    xlabel('Influence of coherence jump magnitude at time (t-X) ms on EEG at time t');
-    title(sprintf('Channel: %s Block: %s',chanlabel, condition{block}));
-    tidyfig;
-    
-    figure;
-    plotmse(squeeze(betas_coi(:,3,:)),2,time_label);
-    xlabel('Influence of button press at time (t-X) ms on EEG at time t');
-    title(sprintf('Channel: %s Block: %s',chanlabel, condition{block}));
-    tidyfig;
-   
-    
-end
 
 
