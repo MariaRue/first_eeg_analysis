@@ -12,7 +12,7 @@
 
 % path to eyetracker 
 addpath(genpath('/Users/Maria/Documents/Matlab/edf-converter')); 
-path = 'eyetrack'; 
+path = 'pilot'; 
 % path = 'pilot'; 
 switch  path
     
@@ -21,10 +21,10 @@ switch  path
        
 
 
-addpath('/Users/Maria/Documents/data/data.continuous_rdk/EEG_pilot/sub004/eye'); 
+addpath('/Users/Maria/Documents/data/data.continuous_rdk/EEG_pilot/sub000/eye'); 
 
-filepath =  '/Users/Maria/Documents/data/data.continuous_rdk/EEG_pilot/sub004/eye';
-bhvpath = '/Users/Maria/Documents/data/data.continuous_rdk/EEG_pilot/sub004/behaviour';
+filepath =  '/Users/Maria/Documents/data/data.continuous_rdk/EEG_pilot/sub000/eye';
+bhvpath = '/Users/Maria/Documents/data/data.continuous_rdk/EEG_pilot/sub000/behaviour';
 
     case 'eyetrack'
        
@@ -39,9 +39,9 @@ end
 
 %%  ---%%% read in the edf data and behavioural data%%%---
 
-nsess = 2; 
+nsess = 6; 
 subid = 0; 
-session = [28,29]; 
+session = [1 2 3 4 5 6]; 
 for i  = 1:nsess 
     filename = sprintf('s%dse%d.edf',subid,session(i));
     file_to_load = fullfile(filepath,filename); 

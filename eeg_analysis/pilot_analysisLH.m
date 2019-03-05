@@ -21,9 +21,10 @@ switch current_user
         % EEGdatadir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','eyetracker_pilot','sub001','short_session_wo_EEG');
         % BHVdatadir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','eyetracker_pilot','sub001','short_session_wo_EEG');
 
-        EEGdatadir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','EEG_pilot','sub003','EEG');
-        BHVdatadir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','EEG_pilot','sub003','behaviour');
- BHVdatadir2= fullfile('/Users/maria/Documents/data/data.continuous_rdk','EEG_pilot','sub003','behaviour');
+        EEGdatadir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','EEG_pilot','sub005','EEG');
+        BHVdatadir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','EEG_pilot','sub005','behaviour');
+ BHVdatadir2= fullfile('/Users/maria/Documents/data/data.continuous_rdk','EEG_pilot','sub005','behaviour');
+ STdatadir = fullfile('/Users/maria/Documents/data/data.continuous_rdk','EEG_pilot','sub005','stim');
         ft_defaults
         
     case 'eyetrig'
@@ -36,18 +37,18 @@ end
 
 %% convert EEG data; downsample to 100 Hz; bandpass filter 0.1-30Hz
 
-subID = 3;
-nSess = 4; %number of sessions
+subID = 5;
+nSess = 5; %number of sessions
 
 cd(EEGdatadir);
 for i = 1:nSess
     
   
-    fname_target = fullfile(EEGdatadir,...
-        sprintf('fdspmeeg_sub%03.0f_sess%03.0f_fil001.mat',subID,i));
+%     fname_target = fullfile(EEGdatadir,...
+%         sprintf('fdspmeeg_sub%03.0f_sess%03.0f_fil001.mat',subID,i));
 
-      % fname_target = fullfile(EEGdatadir,...
-       % sprintf('fdspmeeg_sub%03.0f_sess%03.0f_eeg.mat',subID,i));
+       fname_target = fullfile(EEGdatadir,...
+        sprintf('fdspmeeg_sub%03.0f_sess%03.0f_eeg.mat',subID,i));
         
         
        
@@ -62,9 +63,9 @@ for i = 1:nSess
         
         
         
-       S.dataset = fullfile(EEGdatadir,sprintf('sub%03.0f_sess%03.0f_fil001.set',subID,i));
+       % S.dataset = fullfile(EEGdatadir,sprintf('sub%03.0f_sess%03.0f_fil001.set',subID,i));
         
-          % S.dataset = fullfile(EEGdatadir,sprintf('sub%03.0f_sess%03.0f_eeg.set',subID,i));
+           S.dataset = fullfile(EEGdatadir,sprintf('sub%03.0f_sess%03.0f_eeg.set',subID,i));
         
 
         S.mode = 'continuous';
@@ -110,26 +111,35 @@ end
 for i = 1:nSess
     fname_behav = fullfile(BHVdatadir2,sprintf('sub%03.0f_sess%03.0f_behav.mat',subID,i));
     bhv{i} = load(fname_behav);
+    fname_stim = fullfile(STdatadir,sprintf('sub%03.0f_sess%03.0f_stim.mat',subID,i));
+    stim{i} = load(fname_stim);
 end
 
 
 %% align behavioural data with EEG data
 
 nBlocks = 4;
-nSess = 4;
+nSess = 5;
   for i = 1:nSess %loop over sessions
-    
+      
+      
+    if i == 1 
+        
+        nBlocks = 3;
+    else
    nBlocks = 4;
+    end
     eeg_events = D{i}.events; %events in EEG data
     eob = find([eeg_events.value]==210); %end of block trigger
-%     sob = find([eeg_events.value]== 11);
- 
+     sob = find([eeg_events.value]== 11);
+
+     
     if length(eob)~=nBlocks 
         error('didn''t find 4 end of blocks');
-%     elseif length(sob) ~= nBlocks
-%       error('didn''t find 4 start of blocks');
+    elseif length(sob) ~= nBlocks
+      error('didn''t find 4 start of blocks');
     else
-          eob = [0 eob];
+%           eob = [0 eob];
         
 %         if i == 4 
 %             nBlocks = 2; 
@@ -151,8 +161,8 @@ nSess = 4;
             trigger_vals_behav = bhv{i}.S.trigger_vals{b};
             tvind = find(trigger_vals_behav); tvlist = trigger_vals_behav(tvind); % a list of all the trigger values in S.trigger vals
             
-           eeg_events_block = eeg_events(eob(b)+1:eob(b+1)); %eeg_events just corresponding to this block
-%             eeg_events_block = eeg_events(sob(b):eob(b)); %eeg_events just corresponding to this block
+          % eeg_events_block = eeg_events(eob(b)+1:eob(b+1)); %eeg_events just corresponding to this block
+   eeg_events_block = eeg_events(sob(b):eob(b)); %eeg_events just corresponding to this block
             tvlist_eeg = [eeg_events_block.value]'; % a list of all trigger values that are in the EEG data
             
             if length(tvlist)<=length(tvlist_eeg)
@@ -203,18 +213,26 @@ end
 
 %% now we find the eeg data corresponding to the relevant time-periods in S, check that trigger channel is well aligned, and snip out this eeg data
 
-nBlocks = 4; 
+nBlocks = 6; 
 
 for i = 1:nSess
     eeg_events = D{i}.events; %events in EEG data
     eob = find([eeg_events.value]==210); %end of block trigger
-     %sob = find([eeg_events.value]==11);  
-    eob = [0 eob];
+     sob = find([eeg_events.value]==11);  
+    %eob = [0 eob];
     
  
+        if i == 1 
+            nBlocks = 3;
+        else 
+            nBlocks = 4;
+        end
+     
     for b = 1:nBlocks
-         eeg_events_block = eeg_events(eob(b)+1:eob(b+1)); %eeg_events just corresponding to this block
-        %eeg_events_block = eeg_events(sob(b):eob(b)); %eeg_events just corresponding to this block
+        
+        
+        % eeg_events_block = eeg_events(eob(b)+1:eob(b+1)); %eeg_events just corresponding to this block
+        eeg_events_block = eeg_events(sob(b):eob(b)); %eeg_events just corresponding to this block
         blocklength = eeg_events_block(end).time-eeg_events_block(1).time; %length of block, in seconds
         nSamplesEEG = round(blocklength*D{1}.fsample)+1; %number of samples in block, at 100 Hz (fsample)
         
@@ -368,25 +386,30 @@ end
 
 clear betas
 nChannels = 64;
-nSess = 4;
-for i = 1:nSess
+nSess = 1;
+for i = 3
            
     disp(i); 
     
-    if i == 1
+    if i == 3
         
-        nBlocks = 3;    
-        
+        nBlocks = 4;  
+             blocks = [1,2,3,4];
+    elseif i == 2
+        nBlocks = 3;
+        blocks = [1 3 4];
     else
         nBlocks = 4;
+        blocks = [1 2 3 4];
     end
 %     
-    for b = 1:nBlocks
+    for blockcount = 1:nBlocks
+        b = blocks(blockcount);
         
 %         if i == 1     
 %             b = b+ 1;
 %         end 
-         blockID(i,b) = str2num(bhv{i}.S.block_ID_cells{b});
+         blockID(i,b) = str2num(stim{i}.S.block_ID_cells{b});
         disp(b); 
         nLags = 150; %number of lags to test (100 lags = 1s)
         
@@ -398,9 +421,15 @@ for i = 1:nSess
         mean_coherence = bhv{i}.S.mean_coherence{b}; % vector of mean coherences of this block - to figure out trial periods
         
         
-        %coherence = coherence(1:1000); % for piloting, delete once complete
-        coherence_jump = abs([0; diff(coherence)])>0; %vector of coherence 'jumps'
-        coherence_jump_level = coherence_jump.*abs(coherence); %vector of coherence 'jumps'
+% difference between coherence at t and t-1 (0 at the start because
+% coherence is undefined at t0 so cannot calculate diff between t0 and t1)
+coherence_differences = [0; diff(coherence)];
+
+% absolute value of this tell us the magnitude of the jump at this time point
+coherence_jump_level = abs(coherence_differences);
+
+% all absolute changes are positive, so >0 gives us ?did a jump occur??
+coherence_jump = coherence_jump_level > 0;
         
         integration_start = abs([0; diff(mean_coherence)])>0; %vector of trial starts
         
@@ -517,7 +546,7 @@ for r = 1:6
               title(sprintf('Channel: %s Frequency: %dHz' ,chanlabel, freqlabel));
     else 
     plotmse(squeeze(betas{r}(channel_ind,:,:)),2,time_idx(r).timebins);
-  
+  %plot(time_idx(r).timebins,squeeze(betas{r}(channel_ind,:,:)));
     title(sprintf('Channel: %s' ,chanlabel));
     end
   xlabel(sprintf('Influence of %s on EEG at time (t+X) ms',time_idx(r).name));
