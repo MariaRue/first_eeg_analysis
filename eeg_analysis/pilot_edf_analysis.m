@@ -12,7 +12,7 @@
 
 % path to eyetracker 
 addpath(genpath('/Users/Maria/Documents/Matlab/edf-converter')); 
-path = 'pilot'; 
+path = 'data'; 
 % path = 'pilot'; 
 switch  path
     
@@ -33,6 +33,14 @@ addpath('/Users/Maria/Documents/data/data.continuous_rdk/EEG_pilot/sub001/eyetra
 
 filepath =  '/Users/Maria/Documents/data/data.continuous_rdk/EEG_pilot/sub001/eyetracker_test/eyetracker';
 bhvpath = '/Users/Maria/Documents/data/data.continuous_rdk/EEG_pilot/sub001/eyetracker_test/behaviour'; 
+
+    case 'data'
+        
+addpath('/Users/Maria/Documents/data/data.continuous_rdk/data/EEG/sub007/eye/'); 
+
+filepath =  '/Users/Maria/Documents/data/data.continuous_rdk/data/EEG/sub007/eye';
+bhvpath = '/Users/Maria/Documents/data/data.continuous_rdk/data/EEG/sub007/behaviour'; 
+        
         
 end 
 
@@ -40,7 +48,7 @@ end
 %%  ---%%% read in the edf data and behavioural data%%%---
 
 nsess = 6; 
-subid = 0; 
+subid = 7; 
 session = [1 2 3 4 5 6]; 
 for i  = 1:nsess 
     filename = sprintf('s%dse%d.edf',subid,session(i));
@@ -214,7 +222,7 @@ end
 
 for i = 1:nsess
 
-event_idx = 9:17; % the first 8 events are eyetracking internal and not of use for us 
+event_idx = 11:19; % the first 8 events are eyetracking internal and not of use for us 
 
 idx_count = 0; 
 for idx = event_idx 
@@ -222,10 +230,10 @@ for idx = event_idx
     
 
     
-    eye_calib_events{idx_count} = edf1.Events.Messages.info{idx}; % get calibration event 
-    eye_calib_events_time(idx_count) = edf1.Events.Messages.time(idx); % get timing of event 
+    eye_calib_events{idx_count} = edf{2}.Events.Messages.info{idx}; % get calibration event 
+    eye_calib_events_time(idx_count) = edf{2}.Events.Messages.time(idx); % get timing of event 
     
-    eye_calib_event_idx(idx_count) = find(edf1.Samples.time == eye_calib_events_time(idx_count)); 
+    eye_calib_event_idx(idx_count) = find(edf{2}.Samples.time == eye_calib_events_time(idx_count)); 
  
 end 
 end
@@ -239,12 +247,12 @@ for p = 1:9
     
     figure (1)
     hold on 
-    plot(edf1.Samples.posX(ev_t:ev_t+1100,1),edf1.Samples.posY(ev_t:ev_t+1100,1)); 
+    plot(edf{2}.Samples.posX(ev_t:ev_t+1100,1),edf{2}.Samples.posY(ev_t:ev_t+1100,1)); 
     hold off 
     
     figure (2) 
     hold on 
-     plot(edf1.Samples.posX(ev_t:ev_t+1100,2),edf1.Samples.posY(ev_t:ev_t+1100,2)); 
+     plot(edf{1}.Samples.posX(ev_t:ev_t+1100,2),edf{1}.Samples.posY(ev_t:ev_t+1100,2)); 
     hold off 
     
 end 
@@ -274,10 +282,10 @@ tidyfig
 
 
 
-for block = 1:length(bhv.S.trigger_vals)
+for block = 1:4
     
  
- upsampled_triggers{block} = upsample_triggers(bhv.S.trigger_vals{block},100, 1000); 
+ upsampled_triggers{block} = upsample_triggers(bhv{1}.B.trigger_vals{block},100, 1000); 
  
 end 
  
@@ -501,6 +509,55 @@ for r = 1:6
     tidyfig;
 end
 
+%% look at eye movements after button press 
+b = bhv{2}.B.trigger_vals{2} == 205 | bhv{2}.B.trigger_vals{2} == 201;
+bp = find(b); 
+
+sob_idx = find(eyetriggers{2}(:,1) == 11); 
+sob = eyetriggers{2}(sob_idx,2);
+% get eye samples for some period after button press 
 
 
+ eye_calib{1} = edf{2}.Events.Messages.info{11}; % get calibration event 
+ eye_calib_time(1) = edf{2}.Events.Messages.time(11); % get timing of event 
+    
+ eye_calib_idx(1) = find(edf{2}.Samples.time == eye_calib_time(1));
+ 
+ ev_t = eye_calib_idx(1); 
+ left_eye_x = edf{2}.Samples.posX(ev_t:ev_t+500,1);
+ left_eye_y = edf{2}.Samples.posY(ev_t:ev_t+500,1); 
+ 
+   
+for i = 1 : length(bp)
+    
+bp_x(:,i) =  edf{2}.Samples.posX(sob(2) + bp(i) + 500 : sob(2) + bp(i) + 3500,1);
+bp_y(:,i) =  edf{2}.Samples.posY(sob(2) + bp(i) + 500 : sob(2) + bp(i) + 3500,1); 
 
+
+end
+% 
+figure (1)
+hold on
+histogram(bp_y(:),10)
+histogram(left_eye_y(:),10)
+hold off
+% 
+figure (2)
+hold on
+histogram(bp_x(:),10)
+histogram(left_eye_x(:),10)
+hold off
+
+
+for i = 1:length(bp)
+    
+    figure (1)
+    hold on 
+   %  plot(left_eye_x, left_eye_y, 'k.')
+    plot(bp_x(:,i), bp_y(:,i))
+    
+    hold off
+    
+    
+    
+end 
