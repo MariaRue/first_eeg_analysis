@@ -2,25 +2,32 @@
 % 
 % Data = load ('sub002_sess010_behav.mat');
 
-BHVdatadir = '/Users/maria/Documents/data/data.continuous_rdk/EEG_pilot/sub005/behaviour/'; 
+% BHVdatadir = '/Users/maria/Documents/data/data.continuous_rdk/EEG_pilot/sub005/behaviour/'; 
 
+BHVdatadir = '/Users/maria/Documents/data/data.continuous_rdk/data/EEG/sub007/behaviour/'; 
+Stimdatadir = '/Users/maria/Documents/data/data.continuous_rdk/data/EEG/sub007/stim/'; 
 % BHVdatadir = '/Users/maria/Documents/data/data.continuous_rdk/data/training/sub010/behaviour/';
 % Data = load ('sub004_sess001_behav.mat');
 
 
 %% load in behavioural data
-subID = 5; 
-nSess = 5; 
+subID = 7; 
+nSess = 6; 
 for i = 1:nSess
+   
     fname_behav = fullfile(BHVdatadir,sprintf('sub%03.0f_sess%03.0f_behav.mat',subID,i));
+    fname_sti = fullfile(Stimdatadir,sprintf('sub%03.0f_sess%03.0f_stim.mat',subID,i));
     bhv{i} = load(fname_behav);
+    stim{i} = load(fname_sti); 
 end
 %% 
-Stimulus = bhv{3}.S;
-response = bhv{3}.respMat;
+% Stimulus = bhv{3}.S;
+sess = 2; 
+ response = bhv{sess}.respMat;
 
 
-for i = 1:6
+
+for i = 1:4
     idx_correct = response{i}(:,7) == 1;
     idx_incorrect = response{i}(:,7) == 0;
     idx_early = response{i}(:,7) == 2;
@@ -34,24 +41,25 @@ for i = 1:6
     frame_missed = response{i}(idx_missed,6);
     
     
-    if Stimulus.block_ID_cells{i} == '1'
+    if stim{sess}.S.block_ID_cells{i} == '1'
         
         t = 'ITI short, INTE short';
-    elseif Stimulus.block_ID_cells{i} == '2'
+    elseif stim{sess}.S.block_ID_cells{i} == '2'
         t = 'ITI short, INTE long';
         
-    elseif Stimulus.block_ID_cells{i} == '3'
+    elseif stim{sess}.S.block_ID_cells{i} == '3'
         
         t = 'ITI long, INTE short';
         
-    elseif Stimulus.block_ID_cells{i} == '4'
+    elseif stim{sess}.S.block_ID_cells{i} == '4'
         t = 'ITI long, INTE long';
     end
     
+    
     subplot(4,1,i)
-    plot(Stimulus.coherence_frame{i})
+    plot(bhv{sess}.B.coherence_frame{i})
     hold on
-    plot(Stimulus.mean_coherence{i})
+    plot(bhv{sess}.B.mean_coherence{i})
     if i==9
         l(1) = plot(frame_correct,ones(numel(frame_correct),1),'g.')
         l(2) = plot(frame_incorrect,ones(numel(frame_incorrect),1),'rx')
@@ -85,13 +93,13 @@ for i = 1:6
     end
     hold off
     
-    num_incoh_frames = sum(Stimulus.mean_coherence{i} == 0);
+    num_incoh_frames = sum(bhv{sess}.B.mean_coherence{i} == 0);
 
     ratio_early(i) = sum(idx_early)/num_incoh_frames .* 60 .* 60; %r resp per minute
     
-    num_coh_frames = sum(Stimulus.mean_coherence_org{i} ~= 0);
+    num_coh_frames = sum(stim{sess}.S.mean_coherence_org{i} ~= 0);
     
-    num_trials = max(max(Stimulus.blocks_shuffled{i}));
+    num_trials = max(max(stim{sess}.S.blocks_shuffled{i}));
     
     ratio_missed(i) = (sum(idx_missed)/num_trials); % missed resp per minute
      
@@ -104,12 +112,13 @@ poolRts_INTEL_ITIS = [];
 poolRts_INTEL_ITIL = []; 
 poolRts_INTES_ITIL = []; 
 poolRts_INTES_ITIS = []; 
-for i = 1:5
+for i = 1:6
+    
     clear response 
     response = bhv{i}.respMat; 
 for b  = 1:4
 
-    blockID = str2double(bhv{i}.S.block_ID_cells{b}); 
+    blockID = str2double(stim{i}.S.block_ID_cells{b}); 
 switch blockID
     
     case 1 
@@ -117,6 +126,7 @@ switch blockID
         
     case 2 
         poolRts_INTEL_ITIS =  [poolRts_INTEL_ITIS; response{b}(response{b}(:,7)==1,2)]; 
+        
     case 3 
         poolRts_INTES_ITIL = [poolRts_INTES_ITIL; response{b}(response{b}(:,7)==1,2)]; 
     case 4 
@@ -124,5 +134,36 @@ switch blockID
 end 
 
 end 
-end 
+end
+
+
+% only using trials with rths below 3.5 seconds for INTEL - to compare with
+% INTES condition and see whether people adopt behaviour 
+idx_3sec_INTEL_ITIS = poolRts_INTEL_ITIS <= 3.5; 
+idx_3sec_INTEL_ITIL =  poolRts_INTEL_ITIL <= 3.5; 
+
+poolRts_INTEL_ITIS = poolRts_INTEL_ITIS(idx_3sec_INTEL_ITIS);
+ poolRts_INTEL_ITIL =  poolRts_INTEL_ITIL(idx_3sec_INTEL_ITIL);
+
+figure
+subplot(1,2,1)
+hold on
+histogram(poolRts_INTEL_ITIL,10)
+histogram(poolRts_INTES_ITIL,10)
+hold off 
+legend('INTEL ITIL','INTES ITIL')
+title(sprintf('sub %d', subID))
+xlabel('Rts (sec)')
+
+subplot(1,2,2)
+hold on
+histogram(poolRts_INTEL_ITIS,10)
+histogram(poolRts_INTES_ITIS,10)
+hold off 
+legend('INTEL ITIS','INTES ITIS')
+
+
+
+
+
 
