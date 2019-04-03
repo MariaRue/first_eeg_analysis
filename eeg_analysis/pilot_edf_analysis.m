@@ -36,11 +36,11 @@ switch  path
         
     case 'data'
         
-        addpath('/Users/Maria/Documents/data/data.continuous_rdk/data/EEG/sub011/eye/');
+        addpath('/Users/Maria/Documents/data/data.continuous_rdk/data/EEG/sub013/eye/');
         
-        filepath =  '/Users/Maria/Documents/data/data.continuous_rdk/data/EEG/sub011/eye';
-        bhvpath = '/Users/Maria/Documents/data/data.continuous_rdk/data/EEG/sub011/behaviour';
-        stimpath = '/Users/Maria/Documents/data/data.continuous_rdk/data/EEG/sub011/stim';
+        filepath =  '/Users/Maria/Documents/data/data.continuous_rdk/data/EEG/sub013/eye';
+        bhvpath = '/Users/Maria/Documents/data/data.continuous_rdk/data/EEG/sub013/behaviour';
+        stimpath = '/Users/Maria/Documents/data/data.continuous_rdk/data/EEG/sub013/stim';
         
         
         
@@ -50,8 +50,8 @@ end
 %%  ---%%% read in the edf data and behavioural data%%%---
 
 nsess = 6;
-subid = 11;
-session = [2 3 4 5 6 7];
+subid = 13;
+session = [1 2 3 4 5 6];
 for i  = 1:nsess
     filename = sprintf('s%dse%d.edf',subid,session(i));
     file_to_load = fullfile(filepath,filename);
@@ -843,9 +843,22 @@ for r = 1:3
     tidyfig;
 end
 
+%% upsample behav triggers and try to match them with eye triggers
+
+for i = 1:nsess
+    
+    for block = 1:4
+        
+        
+        upsampled_triggers{i}.trigger_vals{block} = upsample_triggers(bhv{i}.B.trigger_vals{block},100, 1000,'trigger');
+        upsampled_jumps{i}.coherence_frame{block} = upsample_triggers(bhv{i}.B.coherence_frame{block},100, 1000, 'coherence');
+        upsampled_jumps{i}.mean_coherence{block} = upsample_triggers(bhv{i}.B.mean_coherence{block},100, 1000, 'coherence');
+    end
+    
+end
 %%  timelock to trial star% get start of each trial
 nsess = 6; 
-subid = 11; 
+subid = 13; 
    for i = 1:nsess 
     
     sob_idx = find(eyetriggers{i}(:,1) == 11);
@@ -856,21 +869,42 @@ subid = 11;
 for i = 1:nsess
     i
     
-    % sub11 
-   if i == 2
-       
-       block = [1 2 4]; 
-       nBlocks = 3; 
-       
-   elseif i == 4 
-            block = [1 3 4]; 
-       nBlocks = 3; 
-       
-   else 
-              block = [1 2 3 4]; 
-       nBlocks = 4; 
-   end 
-       
+%     % sub11 
+%    if i == 2
+%        
+%        block = [1 2 4]; 
+%        nBlocks = 3; 
+%        
+%    elseif i == 4 
+%             block = [1 3 4]; 
+%        nBlocks = 3; 
+%        
+%    else 
+%               block = [1 2 3 4]; 
+%        nBlocks = 4; 
+%    end 
+%        
+
+ % sub13 
+ if i == 1
+     block = [1 3 4]; 
+     nBlocks = 3; 
+ else
+          block = [1 2 3 4]; 
+     nBlocks = 4; 
+ end 
+
+% sub12 
+%  if i == 2
+%      block = [2 3 4]; 
+%      nBlocks = 3; 
+%  else
+%           block = [1 2 3 4]; 
+%      nBlocks = 4; 
+%  end 
+
+% block = [1 2 3 4]; 
+% nBlocks = 4;
   
 for b = 1:nBlocks 
     bl = block(b); 
@@ -879,8 +913,12 @@ start_idx = find(start_trial);
 
 start_jump = find(upsampled_triggers{i}.trigger_vals{bl}==24);
 
+    button_press = upsampled_triggers{i}.trigger_vals{bl} == 201 |... % vector of button presses during trial periods
+            upsampled_triggers{i}.trigger_vals{bl} == 202;
 
-
+        button_press = find(button_press); 
+        
+    
 % struc with all info similar to fieldtrip
 % needs list of coherences
 % block ID
@@ -892,35 +930,99 @@ pupil(i).coherences{b} = stim{i}.S.blocks_coherence_cells{bl}(1:sum(start_trial)
 pupil(i).blockID{b} = stim{i}.S.block_ID_cells{bl};
 pupil(i).mean_coherence{b} = upsampled_jumps{i}.mean_coherence{bl};
 pupil(i).coherence_frame{b} = upsampled_jumps{i}.coherence_frame{bl};
-pupil(i).time_bins = [-1000 : 6500]; 
+pupil(i).time_bins = [-1000 : 6300]; 
 
 
 for tr = 1:length(start_idx)
+%     if tr == 5 && b == 3 && i == 2
+%         keyboard; 
+%     end 
+   pupil(i).trials{b}(tr,:) = edf{i}.Samples.pupilSize(sob{i}(b) + start_idx(tr) - 1000 : sob{i}(b) + start_idx(tr) + 6300); 
     
-   pupil(i).trials{b}(tr,:) = edf{i}.Samples.pupilSize(sob{i}(b) + start_idx(tr) - 1000 : sob{i}(b) + start_idx(tr) + 6500); 
-    
-    
+tmp = (pupil(i).trials{b}(tr,:));
+zero_vals = find(tmp == 0);
+window_length = 10;
+idx =  unique(zero_vals' + [-window_length:1:window_length]);
+idx = idx(idx>0); idx = idx(idx <= 7301);
+ for n = 1:length(idx)
+pupil(i).trials{b}(tr,idx(n)) = nan; 
+end 
+
+% pupil(i).trials{b}(tr,:) = pupil(i; 
 end 
 
 
 for j = 1:length(start_jump)
     
-   pupil(i).jumps{b}(j,:) = edf{i}.Samples.pupilSize(sob{i}(b) + start_idx(tr) - 1000 : sob{i}(b) + start_idx(tr) + 6500); 
+   pupil(i).jumps{b}(j,:) = edf{i}.Samples.pupilSize(sob{i}(b) + start_idx(tr) - 1000 : sob{i}(b) + start_idx(tr) + 6300); 
     
 end 
 
+for bu = 1:length(button_press)
+    pupil(i).buttons{b}(bu,:) = edf{i}.Samples.pupilSize(sob{i}(b) + button_press(bu) - 6000 : sob{i}(b) + button_press(bu) + 5000); 
+   
+    tmp = (pupil(i).buttons{b}(bu,:));
+zero_vals = find(tmp == 0);
+window_length = 10;
+idx =  unique(zero_vals' + [-window_length:1:window_length]);
+idx = idx(idx>0); idx = idx(idx <= 7301);
+ for n = 1:length(idx)
+pupil(i).buttons{b}(bu,idx(n)) = nan; 
 end 
-end 
+    
+    
+end % buttons
+
+end % blocks
+end % sess
 
 
 datadir = '/Users/Maria/Documents/data/data.continuous_rdk/data/first_analysis_results/behaviour/'; 
 filename = sprintf('s%d_pupil.mat',subid);
 save(fullfile(datadir,filename),'pupil'); 
 
-tmp = (pupil(1).trials{1}(1,:))
-zero_vals = find(tmp == 0);
-window_length = 10
- unique(zero_vals' + [-window_length:1:window_length])
+%% load data 
+subid = 7; 
+filename = sprintf('s%d_pupil.mat',subid);
+SUB = load(fullfile(datadir,filename)); 
+plot(nanmean(pupil(1).trials{1},1))
 
+%% average across conditions 
 
+tr_ITIS_INTES = []; 
+tr_ITIS_INTEL = []; 
+tr_ITIL_INTES = []; 
+tr_ITIL_INTEL = []; 
+nsess = 6;
+for i = 1:nsess 
+    i
+    
+    block_length = length(pupil(i).blockID);
+    for b = 1:block_length
+         blockID = str2double(pupil(i).blockID{b}); 
+        
+         switch blockID 
+            
+            case 1
+                tr_ITIS_INTES = [tr_ITIS_INTES;pupil(i).buttons{b}]; 
+                
+            case 2
+                 tr_ITIS_INTEL = [tr_ITIS_INTEL;pupil(i).buttons{b}];
+            case 3
+                 tr_ITIL_INTES = [tr_ITIL_INTES ;pupil(i).buttons{b}];
+            case 4 
+         tr_ITIL_INTEL = [tr_ITIL_INTEL;pupil(i).buttons{b}];
+        
+         end 
+    end
+    
+end 
 
+figure (1)
+hold on 
+plot(nanmean(tr_ITIS_INTES))
+plot(nanmean(tr_ITIS_INTEL))
+plot(nanmean(tr_ITIL_INTES))
+plot(nanmean(tr_ITIL_INTEL))
+hold off 
+legend('ITIS INTES', 'ITIS INTEL', 'ITIL INTES', 'ITIL INTEL')

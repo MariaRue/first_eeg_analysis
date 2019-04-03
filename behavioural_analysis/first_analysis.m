@@ -4,25 +4,27 @@
 
 % BHVdatadir = '/Users/maria/Documents/data/data.continuous_rdk/EEG_pilot/sub005/behaviour/'; 
 
-BHVdatadir = '/Users/maria/Documents/data/data.continuous_rdk/data/EEG/sub007/behaviour/'; 
-Stimdatadir = '/Users/maria/Documents/data/data.continuous_rdk/data/EEG/sub007/stim/'; 
+BHVdatadir = '/Users/maria/Documents/data/data.continuous_rdk/data/EEG/sub013/behaviour/'; 
+Stimdatadir = '/Users/maria/Documents/data/data.continuous_rdk/data/EEG/sub013/stim/'; 
 % BHVdatadir = '/Users/maria/Documents/data/data.continuous_rdk/data/training/sub010/behaviour/';
 % Data = load ('sub004_sess001_behav.mat');
 
 
 %% load in behavioural data
-subID = 7; 
-nSess = 6; 
+subID = 13; 
+nSess = 6;
+
+sess = [1 2 3 4 5 6];
 for i = 1:nSess
-   
-    fname_behav = fullfile(BHVdatadir,sprintf('sub%03.0f_sess%03.0f_behav.mat',subID,i));
-    fname_sti = fullfile(Stimdatadir,sprintf('sub%03.0f_sess%03.0f_stim.mat',subID,i));
+   s = sess(i);
+    fname_behav = fullfile(BHVdatadir,sprintf('sub%03.0f_sess%03.0f_behav.mat',subID,s));
+    fname_sti = fullfile(Stimdatadir,sprintf('sub%03.0f_sess%03.0f_stim.mat',subID,s));
     bhv{i} = load(fname_behav);
     stim{i} = load(fname_sti); 
 end
 %% 
 % Stimulus = bhv{3}.S;
-sess = 2; 
+sess = 1; 
  response = bhv{sess}.respMat;
 
 
@@ -139,11 +141,12 @@ end
 
 % only using trials with rths below 3.5 seconds for INTEL - to compare with
 % INTES condition and see whether people adopt behaviour 
-idx_3sec_INTEL_ITIS = poolRts_INTEL_ITIS <= 3.5; 
-idx_3sec_INTEL_ITIL =  poolRts_INTEL_ITIL <= 3.5; 
 
-poolRts_INTEL_ITIS = poolRts_INTEL_ITIS(idx_3sec_INTEL_ITIS);
- poolRts_INTEL_ITIL =  poolRts_INTEL_ITIL(idx_3sec_INTEL_ITIL);
+% idx_3sec_INTEL_ITIS = poolRts_INTEL_ITIS <= 3.5; 
+% idx_3sec_INTEL_ITIL =  poolRts_INTEL_ITIL <= 3.5; 
+% 
+% poolRts_INTEL_ITIS = poolRts_INTEL_ITIS(idx_3sec_INTEL_ITIS);
+%  poolRts_INTEL_ITIL =  poolRts_INTEL_ITIL(idx_3sec_INTEL_ITIL);
 
 figure
 subplot(1,2,1)
@@ -162,8 +165,292 @@ histogram(poolRts_INTES_ITIS,10)
 hold off 
 legend('INTEL ITIS','INTES ITIS')
 
+%% look at Rts but now extend it to button presses made after the 3.5 cutoff in the short trial conditions 
 
+% to get these rts loop through each trial that has a missed response and
+% find the first button press after the missed response (make sure that it
+% is an early button response) and calculate the rt time 
 
+% another important note about this - should I disregard Rts below 0.5 secs
+% and do the same for those trials as well? Should I check whether the
+% button press response was correct in case of the early button press ones?
+% 
+poolRts_INTEL_ITIS = []; 
+poolRts_INTEL_ITIL = []; 
+poolRts_INTES_ITIL = []; 
+poolRts_INTES_ITIS = []; 
+figure;
+for i = 1:6
+    
+    clear response 
+    response = bhv{i}.respMat; 
+for bl  = 1:4
 
+     RT = [];
+    idx_correct = response{bl}(:,7) == 1;
+    idx_incorrect = response{bl}(:,7) == 0;
+    idx_early = response{bl}(:,7) == 2;
+    idx_missed = response{bl}(:,7) == 3;
 
+    
+    frame_correct = response{bl}(idx_correct,6);
+    frame_incorrect = response{bl}(idx_incorrect,6);
+    frame_early = response{bl}(idx_early,6);
+    frame_missed = response{bl}(idx_missed,6);
+    
+    
+    % find indices of trial starts 
+    idx = bhv{1}.B.mean_coherence{bl}(2:end) ~= 0 & bhv{1}.B.mean_coherence{bl}(1:end-1) == 0; 
+    
+    idx_sot = find(idx); 
+    
+    % loop through trials and identify the ones that were missed 
+    if any(idx_missed)
+    tr_id = []; 
+    count_missed = 1; 
+    for tr = 1:length(idx_sot)
+        
+     f_ID = frame_missed(count_missed); 
+     
+     diff_trs = diff([idx_sot(tr),f_ID]); 
+     
+  
+     if  diff_trs > 350
+     
+        tr_id(tr) = 0; 
+        
+     elseif diff_trs < 299 
+         tr_id(tr) = 0;
+        
+     elseif diff_trs < 350 
+        tr_id(tr) = 1; 
+        
+        if length(frame_missed) > count_missed
+        count_missed = count_missed + 1; 
+        end
+     else 
+     
+        
+        
+    end 
+    
+    end
+    
+    % loop through trials that have been missed and find next early button
+    % press 
+    
+    idx_missed_trial_id = find(tr_id); 
+    count = 1; 
+    for tr = 1:length(idx_missed_trial_id) 
+        
+     
+     trial =   idx_sot(idx_missed_trial_id(tr)); 
+     
+     
+    early_trials = find(frame_early > trial); 
+    
+    
+    if any(early_trials)
+    % now find early press that is closest to trial start (which is first
+    % entry in early trials 
+    
+   % find the difference in frames 
+ if idx_sot(idx_missed_trial_id(tr)) < idx_sot(end)
+     
+   if frame_early(early_trials(1)) < idx_sot(idx_missed_trial_id(tr)+1) 
+       
+   diff_frames = frame_early(early_trials(1))-trial; 
+   RT(count) = diff_frames/100; 
+   
+   end 
+   
+ elseif  idx_sot(idx_missed_trial_id(tr)) == idx_sot(end)
+     
+   diff_frames = frame_early(early_trials(1))-trial; 
+   RT(count) = diff_frames/100; 
+   
+     
+   
+ end 
+ 
+  count = count + 1;
+    end 
+        
+        
+    end 
+    
+   RT(RT == 0) = [];
+    end
+    
+    
+    blockID = str2double(stim{i}.S.block_ID_cells{bl}); 
+switch blockID
+    
+    case 1 
+        poolRts_INTES_ITIS = [poolRts_INTES_ITIS; response{bl}(response{bl}(:,7)==1,2);RT'];
+        
+    case 2 
+        poolRts_INTEL_ITIS =  [poolRts_INTEL_ITIS; response{bl}(response{bl}(:,7)==1,2);RT']; 
+        
+    case 3 
+        poolRts_INTES_ITIL = [poolRts_INTES_ITIL; response{bl}(response{bl}(:,7)==1,2);RT']; 
+    case 4 
+       poolRts_INTEL_ITIL = [poolRts_INTEL_ITIL; response{bl}(response{bl}(:,7)==1,2);RT']; 
+end 
+
+end 
+end
+
+figure
+
+subplot(1,2,1)
+hold on
+histogram(poolRts_INTEL_ITIL, 20, 'BinWidth',0.2,'BinLimits',[0 10])
+histogram(poolRts_INTES_ITIL, 20, 'BinWidth',0.2,'BinLimits',[0 10])
+hold off 
+legend('INTEL ITIL','INTES ITIL')
+title(sprintf('sub %d', subID))
+xlabel('Rts (sec)')
+
+subplot(1,2,2)
+hold on
+histogram(poolRts_INTEL_ITIS,20, 'BinWidth',0.2,'BinLimits',[0 10])
+histogram(poolRts_INTES_ITIS,20, 'BinWidth',0.2, 'BinLimits',[0 10])
+hold off 
+legend('INTEL ITIS','INTES ITIS')
+%%
+    RT = [];
+    idx_correct = response{bl}(:,7) == 1;
+    idx_incorrect = response{bl}(:,7) == 0;
+    idx_early = response{bl}(:,7) == 2;
+    idx_missed = response{bl}(:,7) == 3;
+
+    
+    frame_correct = response{bl}(idx_correct,6);
+    frame_incorrect = response{bl}(idx_incorrect,6);
+    frame_early = response{bl}(idx_early,6);
+    frame_missed = response{bl}(idx_missed,6);
+    
+    
+    % find indices of trial starts 
+    idx = bhv{1}.B.mean_coherence{bl}(2:end) ~= 0 & bhv{1}.B.mean_coherence{bl}(1:end-1) == 0; 
+    
+    idx_sot = find(idx); 
+    
+    % loop through trials and identify the ones that were missed 
+    
+    tr_id = []; 
+    count_missed = 1; 
+    for tr = 1:length(idx_sot)
+        
+     f_ID = frame_missed(count_missed); 
+     
+     diff_trs = diff([idx_sot(tr),f_ID]); 
+     
+  
+     if  diff_trs > 350
+     
+        tr_id(tr) = 0; 
+        
+     elseif diff_trs < 299 
+         tr_id(tr) = 0;
+        
+     elseif diff_trs < 350 
+        tr_id(tr) = 1; 
+        
+        if length(frame_missed) > count_missed
+        count_missed = count_missed + 1; 
+        end
+     else 
+     
+        
+        
+    end 
+    
+    end
+    
+    % loop through trials that have been missed and find next early button
+    % press 
+    
+    idx_missed_trial_id = find(tr_id); 
+    count = 1; 
+    for tr = 1:length(idx_missed_trial_id) 
+        
+     
+     trial =   idx_sot(idx_missed_trial_id(tr)); 
+     
+     
+    early_trials = find(frame_early > trial); 
+    
+    
+    if any(early_trials)
+    % now find early press that is closest to trial start (which is first
+    % entry in early trials 
+    
+   % find the difference in frames 
+ if idx_sot(idx_missed_trial_id(tr)) < idx_sot(end)
+     
+   if frame_early(early_trials(1)) < idx_sot(idx_missed_trial_id(tr)+1) 
+       
+   diff_frames = frame_early(early_trials(1))-trial; 
+   RT(count) = diff_frames/100; 
+   
+   end 
+   
+ elseif  idx_sot(idx_missed_trial_id(tr)) == idx_sot(end)
+     
+   diff_frames = frame_early(early_trials(1))-trial; 
+   RT(count) = diff_frames/100; 
+   
+     
+   
+ end 
+ 
+  count = count + 1;
+    end 
+        
+        
+    end 
+    
+   RT(RT == 0) = [];
+   RT(RT > 8) = [];
+   RT = [];
+    
+    blockID = str2double(stim{i}.S.block_ID_cells{bl}); 
+switch blockID
+    
+    case 1 
+        poolRts_INTES_ITIS = [poolRts_INTES_ITIS; response{bl}(response{bl}(:,7)==1,2);RT'];
+        
+    case 2 
+        poolRts_INTEL_ITIS =  [poolRts_INTEL_ITIS; response{bl}(response{bl}(:,7)==1,2);RT']; 
+        
+    case 3 
+        poolRts_INTES_ITIL = [poolRts_INTES_ITIL; response{bl}(response{bl}(:,7)==1,2);RT']; 
+    case 4 
+       poolRts_INTEL_ITIL = [poolRts_INTEL_ITIL; response{bl}(response{bl}(:,7)==1,2);RT']; 
+end 
+
+    
+    
+
+  
+    
+figure
+
+subplot(1,2,1)
+hold on
+histogram(poolRts_INTEL_ITIL,'BinWidth',0.2)
+histogram(poolRts_INTES_ITIL,'BinWidth',0.2)
+hold off 
+legend('INTEL ITIL','INTES ITIL')
+title(sprintf('sub %d', subID))
+xlabel('Rts (sec)')
+
+subplot(1,2,2)
+hold on
+histogram(poolRts_INTEL_ITIS,20)
+histogram(poolRts_INTES_ITIS,20)
+hold off 
+legend('INTEL ITIS','INTES ITIS')
 
