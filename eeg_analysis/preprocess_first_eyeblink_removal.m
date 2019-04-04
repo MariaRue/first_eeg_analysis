@@ -6,22 +6,23 @@
 % reflect big voltage jumps 
 
 %% start fieldtrip
-addpath('/Users/maria/Matlab-Drive/fieldtrip-master/')
+addpath('/Users/maria/Documents/Matlab/fieldtrip/')
 ft_defaults;
 %% 
-addpath('/Users/maria/Matlab-Drive/eeglab14_1_2b/')
+addpath('/Users/maria/Documents/eeglab14_1_2b/')
 eeglab
 
 %% path to data
-addpath('/Users/maria/Documents/data/data.continous_rdk/EEG_pilot/sub003/EEG/');
+addpath('/Users/maria/Documents/data/data.continuous_rdk/EEG_pilot/sub003/EEG');
+eegdatadir = '/Users/maria/Documents/data/data.continuous_rdk/EEG_pilot/sub003/EEG';
 
 %%
- load('/Users/maria/Desktop/data.continous_rdk/EEG_pilot/sub003/behaviour/sub003_sess004_behav.mat')
+ load('/Users/maria/Documents/data/data.continuous_rdk/EEG_pilot/sub003/behaviour/sub003_sess004_behav.mat')
 
 %% load data JUST TO FIND OUT WHERE THE EPOCH BEGINS AND ENDS (in terms of samples)
 
 cfg                        = [];
-cfg.dataset                = 'sub003_sess004_fil001.set';
+cfg.dataset                = fullfile(eegdatadir,'sub003_sess002_fil001.set');
 cfg.trialdef.eventtype     = 'trigger';
 
 cfg.trialdef.eventvalue    = [24 25 26 34 35 36 210]; % your event values
@@ -44,7 +45,7 @@ end_of_block = find(cfg_short_trials.trl(:,4)==210);
 
 for bl = 1 : length(end_of_block)
 cfg = [];
-cfg.dataset                 = 'sub003_sess004_fil001.set';
+cfg.dataset                 = fullfile(eegdatadir,'sub003_sess002_fil001.set');
 % cfg.trialdef.eventtype      = 'trigger';
 % first and last samples
 

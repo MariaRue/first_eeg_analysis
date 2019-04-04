@@ -8,13 +8,13 @@ BHVdatadir = '/Users/maria/Documents/data/data.continuous_rdk/data/EEG/sub013/be
 Stimdatadir = '/Users/maria/Documents/data/data.continuous_rdk/data/EEG/sub013/stim/'; 
 % BHVdatadir = '/Users/maria/Documents/data/data.continuous_rdk/data/training/sub010/behaviour/';
 % Data = load ('sub004_sess001_behav.mat');
-
-
+BHVdatadir = '/Users/maria/Documents/data/data.continuous_rdk/EEG_pilot/behaviour/sub000'
+Stimdatadir = '/Users/maria/Documents/data/data.continuous_rdk/EEG_pilot/stim/sub000'
 %% load in behavioural data
-subID = 13; 
-nSess = 6;
+ subID = 0; 
+ nSess = 1;
 
-sess = [1 2 3 4 5 6];
+sess = [118];
 for i = 1:nSess
    s = sess(i);
     fname_behav = fullfile(BHVdatadir,sprintf('sub%03.0f_sess%03.0f_behav.mat',subID,s));
@@ -180,7 +180,7 @@ poolRts_INTEL_ITIL = [];
 poolRts_INTES_ITIL = []; 
 poolRts_INTES_ITIS = []; 
 figure;
-for i = 1:6
+for i = 6
     
     clear response 
     response = bhv{i}.respMat; 
@@ -214,27 +214,40 @@ for bl  = 1:4
      
      diff_trs = diff([idx_sot(tr),f_ID]); 
      
-  
-     if  diff_trs > 350
+   blockID = str2double(stim{i}.S.block_ID_cells{bl}); 
+   
+   if blockID == 2 || blockID == 4
+       tr_diff = [550 499];
+       
+   else
+       tr_diff = [350 299];
+       
+   end 
+     
+     if  diff_trs > tr_diff(1)
      
         tr_id(tr) = 0; 
         
-     elseif diff_trs < 299 
+     elseif diff_trs < tr_diff(2)
          tr_id(tr) = 0;
         
-     elseif diff_trs < 350 
+     elseif diff_trs < tr_diff(1)
         tr_id(tr) = 1; 
         
         if length(frame_missed) > count_missed
         count_missed = count_missed + 1; 
         end
-     else 
+        
+        
+     % else 
      
         
         
     end 
     
     end
+    
+    keyboard; 
     
     % loop through trials that have been missed and find next early button
     % press 
@@ -283,7 +296,7 @@ for bl  = 1:4
     end
     
     
-    blockID = str2double(stim{i}.S.block_ID_cells{bl}); 
+   
 switch blockID
     
     case 1 
@@ -453,4 +466,8 @@ histogram(poolRts_INTEL_ITIS,20)
 histogram(poolRts_INTES_ITIS,20)
 hold off 
 legend('INTEL ITIS','INTES ITIS')
+
+%% 
+
+
 
