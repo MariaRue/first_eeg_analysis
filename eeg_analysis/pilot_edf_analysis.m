@@ -36,11 +36,11 @@ switch  path
         
     case 'data'
         
-        addpath('/Users/Maria/Documents/data/data.continuous_rdk/data/EEG/sub013/eye/');
+        addpath('/Users/Maria/Documents/data/data.continuous_rdk/data/EEG/sub016/eye/');
         
-        filepath =  '/Users/Maria/Documents/data/data.continuous_rdk/data/EEG/sub013/eye';
-        bhvpath = '/Users/Maria/Documents/data/data.continuous_rdk/data/EEG/sub013/behaviour';
-        stimpath = '/Users/Maria/Documents/data/data.continuous_rdk/data/EEG/sub013/stim';
+        filepath =  '/Users/Maria/Documents/data/data.continuous_rdk/data/EEG/sub016/eye';
+        bhvpath = '/Users/Maria/Documents/data/data.continuous_rdk/data/EEG/sub016/behaviour';
+        stimpath = '/Users/Maria/Documents/data/data.continuous_rdk/data/EEG/sub016/stim';
         
         
         
@@ -50,7 +50,7 @@ end
 %%  ---%%% read in the edf data and behavioural data%%%---
 
 nsess = 6;
-subid = 13;
+subid = 16;
 session = [1 2 3 4 5 6];
 for i  = 1:nsess
     filename = sprintf('s%dse%d.edf',subid,session(i));
@@ -66,7 +66,7 @@ for i  = 1:nsess
     stim{i} = load(stim_to_load);
 end
 
-%% get events with frames for actual task
+%% get events with frames for actual task below sub015
 
 
 for l = 1:nsess
@@ -100,6 +100,59 @@ for l = 1:nsess
         
     end
 end
+
+%% for subjects starting at sub015
+for l = 1:nsess
+    ntriggers =  length(edf{l}.Events.Messages.info); % number of triggers send during session
+    
+    eyetriggers{l} = zeros(length(edf{l}.Samples.time),3); % vector with nSamplesx2 with first column trigger val and second column frame
+    idx = 0;
+    for i = 18:ntriggers % loop through triggers that are actually session related
+        Tmidx = 0;
+        tcounter = 0;
+        idx = idx+1;
+        
+        
+        Tridx = find(edf{l}.Events.Messages.info{i} == 'T'); % idx that divides frame and trigger number
+        while ~any(Tmidx)
+            
+            
+            Tmidx = find(edf{l}.Samples.time == (edf{l}.Events.Messages.time(i)+tcounter));
+            
+            tcounter = tcounter + 1;
+            % find sample idx
+        end
+        
+        
+        if edf{l}.Events.Messages.info{i}(1) == 'F'
+        Tridx = find(edf{l}.Events.Messages.info{i} == 'T'); % idx that divides frame and trigger number
+        frame = str2double(edf{l}.Events.Messages.info{i}(2:Tridx-1)); % convert frame number in double
+        
+        trigger = str2double(edf{l}.Events.Messages.info{i}(Tridx+1:end)); % convert trigger in double
+        
+        eyetriggers{l}(idx,:)  = [trigger, Tmidx, idx]; % insert in matrix
+        else 
+        Tridx = find(edf{l}.Events.Messages.info{i} == 'T'); % idx that divides frame and trigger number
+        frame = 'nan'; % convert frame number in double
+        
+        num = str2double(edf{l}.Events.Messages.info{i}(end));
+        
+        if ~isnan(num)
+
+        trigger = num + 100;
+        
+        else
+            
+            trigger = 210;% convert trigger in double
+        end 
+        
+        eyetriggers{l}(idx,:)  = [trigger, Tmidx, idx]; % insert in matrix   
+            
+        end
+        
+    end
+end
+
 %% separate by block and annulus
 
 for i = 1:4
@@ -523,10 +576,10 @@ for r = 1:6
 end
 
 %% look at eye movements after button press
-subID = 11;
+subID = 16;
 
 
-sess = 5;
+sess = 2;
 
 figure
 
@@ -858,16 +911,17 @@ for i = 1:nsess
 end
 %%  timelock to trial star% get start of each trial
 nsess = 6; 
-subid = 13; 
+subid = 16; 
    for i = 1:nsess 
     
-    sob_idx = find(eyetriggers{i}(:,1) == 11);
-    sob{i} = eyetriggers{i}(sob_idx,2);
+    sob_idx = find(eyetriggers{i}(:,1) == 2);
+    sob{i} = eyetriggers{i}(sob_idx,2)-1999;
    end 
    
 %%
 for i = 1:nsess
     i
+    
     
 %     % sub11 
 %    if i == 2
@@ -886,13 +940,13 @@ for i = 1:nsess
 %        
 
  % sub13 
- if i == 1
-     block = [1 3 4]; 
-     nBlocks = 3; 
- else
-          block = [1 2 3 4]; 
-     nBlocks = 4; 
- end 
+%  if i == 1
+%      block = [1 3 4]; 
+%      nBlocks = 3; 
+%  else
+%           block = [1 2 3 4]; 
+%      nBlocks = 4; 
+%  end 
 
 % sub12 
 %  if i == 2
@@ -903,8 +957,8 @@ for i = 1:nsess
 %      nBlocks = 4; 
 %  end 
 
-% block = [1 2 3 4]; 
-% nBlocks = 4;
+block = [1 2 3 4]; 
+nBlocks = 4;
   
 for b = 1:nBlocks 
     bl = block(b); 
@@ -982,7 +1036,7 @@ filename = sprintf('s%d_pupil.mat',subid);
 save(fullfile(datadir,filename),'pupil'); 
 
 %% load data 
-subid = 7; 
+subid = 16; 
 filename = sprintf('s%d_pupil.mat',subid);
 SUB = load(fullfile(datadir,filename)); 
 plot(nanmean(pupil(1).trials{1},1))
@@ -1018,7 +1072,7 @@ for i = 1:nsess
     
 end 
 
-figure (1)
+figure 
 hold on 
 plot(nanmean(tr_ITIS_INTES))
 plot(nanmean(tr_ITIS_INTEL))
@@ -1026,3 +1080,7 @@ plot(nanmean(tr_ITIL_INTES))
 plot(nanmean(tr_ITIL_INTEL))
 hold off 
 legend('ITIS INTES', 'ITIS INTEL', 'ITIL INTES', 'ITIL INTEL')
+title(['sub',num2str(subid),' ', 'button6000'])
+ylabel('pupil size')
+xlabel('msec')
+tidyfig

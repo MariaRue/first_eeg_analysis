@@ -4,17 +4,17 @@
 
 % BHVdatadir = '/Users/maria/Documents/data/data.continuous_rdk/EEG_pilot/sub005/behaviour/'; 
 
-BHVdatadir = '/Users/maria/Documents/data/data.continuous_rdk/data/EEG/sub013/behaviour/'; 
-Stimdatadir = '/Users/maria/Documents/data/data.continuous_rdk/data/EEG/sub013/stim/'; 
+BHVdatadir = '/Users/maria/Documents/data/data.continuous_rdk/data/EEG/sub020/behaviour/'; 
+Stimdatadir = '/Users/maria/Documents/data/data.continuous_rdk/data/EEG/sub020/stim/'; 
 % BHVdatadir = '/Users/maria/Documents/data/data.continuous_rdk/data/training/sub010/behaviour/';
 % Data = load ('sub004_sess001_behav.mat');
-BHVdatadir = '/Users/maria/Documents/data/data.continuous_rdk/EEG_pilot/behaviour/sub000'
-Stimdatadir = '/Users/maria/Documents/data/data.continuous_rdk/EEG_pilot/stim/sub000'
+% BHVdatadir = '/Users/maria/Documents/data/data.continuous_rdk/EEG_pilot/behaviour/sub000'
+% Stimdatadir = '/Users/maria/Documents/data/data.continuous_rdk/EEG_pilot/stim/sub000'
 %% load in behavioural data
- subID = 0; 
- nSess = 1;
+ subID = 20; 
+ nSess = 6;
 
-sess = [118];
+sess = [1 2 3 4 5 6];
 for i = 1:nSess
    s = sess(i);
     fname_behav = fullfile(BHVdatadir,sprintf('sub%03.0f_sess%03.0f_behav.mat',subID,s));
@@ -180,13 +180,13 @@ poolRts_INTEL_ITIL = [];
 poolRts_INTES_ITIL = []; 
 poolRts_INTES_ITIS = []; 
 figure;
-for i = 6
-    
+for i = 1: 6
+       
     clear response 
     response = bhv{i}.respMat; 
 for bl  = 1:4
-
-     RT = [];
+RT = [];
+  
     idx_correct = response{bl}(:,7) == 1;
     idx_incorrect = response{bl}(:,7) == 0;
     idx_early = response{bl}(:,7) == 2;
@@ -203,7 +203,7 @@ for bl  = 1:4
     idx = bhv{1}.B.mean_coherence{bl}(2:end) ~= 0 & bhv{1}.B.mean_coherence{bl}(1:end-1) == 0; 
     
     idx_sot = find(idx); 
-    
+       blockID = str2double(stim{i}.S.block_ID_cells{bl}); 
     % loop through trials and identify the ones that were missed 
     if any(idx_missed)
     tr_id = []; 
@@ -214,7 +214,7 @@ for bl  = 1:4
      
      diff_trs = diff([idx_sot(tr),f_ID]); 
      
-   blockID = str2double(stim{i}.S.block_ID_cells{bl}); 
+
    
    if blockID == 2 || blockID == 4
        tr_diff = [550 499];
@@ -247,7 +247,7 @@ for bl  = 1:4
     
     end
     
-    keyboard; 
+
     
     % loop through trials that have been missed and find next early button
     % press 
@@ -314,7 +314,7 @@ end
 end 
 end
 
-figure
+
 
 subplot(1,2,1)
 hold on

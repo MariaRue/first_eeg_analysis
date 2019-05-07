@@ -34,10 +34,10 @@ switch current_user
         scriptdir = fullfile('/Users/maria/Documents/Matlab/continuous_eeg_analysis/eeg_analysis');
         
         
-        EEGdatadir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','data','EEG','sub007','EEG');
-        BHVdatadir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','data','EEG','sub007','behaviour');
-        BHVdatadir2= fullfile('/Users/maria/Documents/data/data.continuous_rdk','data','EEG','sub007','behaviour');
-        STdatadir = fullfile('/Users/maria/Documents/data/data.continuous_rdk','data','EEG','sub007','stim');
+        EEGdatadir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','data','EEG','sub015','EEG');
+        BHVdatadir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','data','EEG','sub015','behaviour');
+        BHVdatadir2= fullfile('/Users/maria/Documents/data/data.continuous_rdk','data','EEG','sub015','behaviour');
+        STdatadir = fullfile('/Users/maria/Documents/data/data.continuous_rdk','data','EEG','sub015','stim');
         ft_defaults
         
     case 'eyetrig'
@@ -50,17 +50,16 @@ end
 
 %% convert EEG data; downsample to 100 Hz; bandpass filter 0.1-30Hz
 
-subID = 7;
-nSess = 6; %number of sessions       
+subID = 15;
+nSess = 5; %number of sessions       
 cd(EEGdatadir);
 for i = 1:nSess
-    
-  
-    fname_target = fullfile(EEGdatadir,...
-        sprintf('fdspmeeg_sub%03.0f_sess%03.0f_fil001.mat',subID,i));
+      
+%     fname_target = fullfile(EEGdatadir,...
+%         sprintf('fdspmeeg_sub%03.0f_sess%03.0f_fil001.mat',subID,i));
 
-%        fname_target = fullfile(EEGdatadir,...
-%         sprintf('fdspmeeg_sub%03.0f_sess%03.0f_eeg.mat',subID,i));
+       fname_target = fullfile(EEGdatadir,...
+        sprintf('fdspmeeg_sub%03.0f_sess%03.0f_eeg.mat',subID,i));
         
         
        
@@ -131,7 +130,7 @@ end
 %% align behavioural data with EEG data
 
 nBlocks = 4;
-nSess = 6;
+nSess = 5;
   for i = 1:nSess %loop over sessions
       
 %       
@@ -398,17 +397,17 @@ end
 clear betas
 nChannels = 64;
 nSess = 6;
-for i = 1:6
+for i = 1:nSess
            
     disp(i); 
-    
-    if i == 5
+
+        if i == 1
         
         nBlocks = 3;  
-             blocks = [1,3,4];
-%     elseif i == 6
-%         nBlocks = 2;
-%         blocks = [1 4];
+             blocks = [1,2,3];
+    elseif i == 3
+         nBlocks = 3;
+         blocks = [1,3, 4];
     else
         nBlocks = 4;
         blocks = [1 2 3 4];
