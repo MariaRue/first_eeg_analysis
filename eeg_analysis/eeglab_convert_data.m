@@ -1,10 +1,10 @@
 % EEGdatadir = '/Users/maria/Documents/data/data.continuous_rdk/EEG_pilot/sub000/eeg/';
 addpath('/Users/maria/Documents/MATLAB/eeglab14_1_2b/');
 eeglab
-EEGdatadir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','data','EEG','sub015','EEG');
+EEGdatadir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','data','EEG','sub026','EEG');
 
-subID = 15; 
-nSess = 5;
+subID = 26; 
+nSess = 6;
 cd(EEGdatadir)
 
 for i = 1:nSess

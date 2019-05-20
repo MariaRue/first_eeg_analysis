@@ -34,10 +34,10 @@ switch current_user
         scriptdir = fullfile('/Users/maria/Documents/Matlab/continuous_eeg_analysis/eeg_analysis');
         
         
-        EEGdatadir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','data','EEG','sub015','EEG');
-        BHVdatadir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','data','EEG','sub015','behaviour');
-        BHVdatadir2= fullfile('/Users/maria/Documents/data/data.continuous_rdk','data','EEG','sub015','behaviour');
-        STdatadir = fullfile('/Users/maria/Documents/data/data.continuous_rdk','data','EEG','sub015','stim');
+        EEGdatadir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','data','EEG','sub026','EEG');
+        BHVdatadir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','data','EEG','sub026','behaviour');
+        BHVdatadir2= fullfile('/Users/maria/Documents/data/data.continuous_rdk','data','EEG','sub026','behaviour');
+        STdatadir = fullfile('/Users/maria/Documents/data/data.continuous_rdk','data','EEG','sub026','stim');
         ft_defaults
         
     case 'eyetrig'
@@ -50,8 +50,8 @@ end
 
 %% convert EEG data; downsample to 100 Hz; bandpass filter 0.1-30Hz
 
-subID = 15;
-nSess = 5; %number of sessions       
+subID = 26;
+nSess = 6; %number of sessions       
 cd(EEGdatadir);
 for i = 1:nSess
       
@@ -130,7 +130,7 @@ end
 %% align behavioural data with EEG data
 
 nBlocks = 4;
-nSess = 5;
+nSess = 6;
   for i = 1:nSess %loop over sessions
       
 %       
@@ -405,9 +405,9 @@ for i = 1:nSess
         
         nBlocks = 3;  
              blocks = [1,2,3];
-    elseif i == 3
+    elseif i == 6
          nBlocks = 3;
-         blocks = [1,3, 4];
+         blocks = [1,3,4];
     else
         nBlocks = 4;
         blocks = [1 2 3 4];
