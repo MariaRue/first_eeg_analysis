@@ -3,18 +3,27 @@
 % Data = load ('sub002_sess010_behav.mat');
 
 % BHVdatadir = '/Users/maria/Documents/data/data.continuous_rdk/EEG_pilot/sub005/behaviour/'; 
+session = 'train';
+switch session
+    
+    case 'EEG'
+        BHVdatadir = '/Users/maria/Documents/data/data.continuous_rdk/data/EEG/sub020/behaviour/';
+        Stimdatadir = '/Users/maria/Documents/data/data.continuous_rdk/data/EEG/sub020/stim/';
+        
+    case 'train'
+        BHVdatadir = '/Users/maria/Documents/data/data.continuous_rdk/data/training/sub025/behaviour/';
+        Stimdatadir = '/Users/maria/Documents/data/data.continuous_rdk/data/training/sub025/stim/';
+end
 
-BHVdatadir = '/Users/maria/Documents/data/data.continuous_rdk/data/EEG/sub020/behaviour/'; 
-Stimdatadir = '/Users/maria/Documents/data/data.continuous_rdk/data/EEG/sub020/stim/'; 
 % BHVdatadir = '/Users/maria/Documents/data/data.continuous_rdk/data/training/sub010/behaviour/';
 % Data = load ('sub004_sess001_behav.mat');
 % BHVdatadir = '/Users/maria/Documents/data/data.continuous_rdk/EEG_pilot/behaviour/sub000'
 % Stimdatadir = '/Users/maria/Documents/data/data.continuous_rdk/EEG_pilot/stim/sub000'
 %% load in behavioural data
- subID = 20; 
- nSess = 6;
+ subID = 25; 
+ nSess = 2;
 
-sess = [1 2 3 4 5 6];
+sess = [10,11];
 for i = 1:nSess
    s = sess(i);
     fname_behav = fullfile(BHVdatadir,sprintf('sub%03.0f_sess%03.0f_behav.mat',subID,s));
@@ -114,7 +123,7 @@ poolRts_INTEL_ITIS = [];
 poolRts_INTEL_ITIL = []; 
 poolRts_INTES_ITIL = []; 
 poolRts_INTES_ITIS = []; 
-for i = 1:6
+for i = 1:2
     
     clear response 
     response = bhv{i}.respMat; 

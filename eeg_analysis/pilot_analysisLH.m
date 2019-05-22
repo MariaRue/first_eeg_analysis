@@ -34,10 +34,10 @@ switch current_user
         scriptdir = fullfile('/Users/maria/Documents/Matlab/continuous_eeg_analysis/eeg_analysis');
         
         
-        EEGdatadir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','data','EEG','sub026','EEG');
-        BHVdatadir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','data','EEG','sub026','behaviour');
-        BHVdatadir2= fullfile('/Users/maria/Documents/data/data.continuous_rdk','data','EEG','sub026','behaviour');
-        STdatadir = fullfile('/Users/maria/Documents/data/data.continuous_rdk','data','EEG','sub026','stim');
+        EEGdatadir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','data','EEG','sub031','EEG');
+        BHVdatadir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','data','EEG','sub031','behaviour');
+        BHVdatadir2= fullfile('/Users/maria/Documents/data/data.continuous_rdk','data','EEG','sub031','behaviour');
+        STdatadir = fullfile('/Users/maria/Documents/data/data.continuous_rdk','data','EEG','sub031','stim');
         ft_defaults
         
     case 'eyetrig'
@@ -50,7 +50,7 @@ end
 
 %% convert EEG data; downsample to 100 Hz; bandpass filter 0.1-30Hz
 
-subID = 26;
+subID = 31;
 nSess = 6; %number of sessions       
 cd(EEGdatadir);
 for i = 1:nSess
@@ -283,7 +283,7 @@ for i = 1:nSess
         
    
         
-        plot(nMatch); disp(b); pause; % this reveals a clear 'spike' in every session -
+%         plot(nMatch); disp(b); pause; % this reveals a clear 'spike' in every session -
         % where the triggers in the EEG data match the behavioural triggers
         %but a bit strangely, it doesn't always seem
         %to be at 500 - it is sometimes up to half a
@@ -401,13 +401,13 @@ for i = 1:nSess
            
     disp(i); 
 
-        if i == 1
+        if i == 7
         
         nBlocks = 3;  
-             blocks = [1,2,3];
-    elseif i == 6
+             blocks = [1,2,4];
+    elseif i == 8
          nBlocks = 3;
-         blocks = [1,3,4];
+         blocks = [2,3,4];
     else
         nBlocks = 4;
         blocks = [1 2 3 4];
@@ -488,40 +488,46 @@ for i = 1:nSess
         regressor_list(3).nLagsForward = 150;
         regressor_list(3).name = 'prediction error';
         
-        regressor_list(4).value = button_press;
-        regressor_list(4).nLagsBack = 150;
-        regressor_list(4).nLagsForward = 150;
-        regressor_list(4).name = 'button_press';
         
-        regressor_list(5).value = button_press_incoh_motion;
+        regressor_list(4).value = abs(coherences);
+        regressor_list(4).nLagsBack = 100;
+        regressor_list(4).nLagsForward = 150;
+        regressor_list(4).name = 'abs stimulus';
+        
+        regressor_list(5).value = button_press;
         regressor_list(5).nLagsBack = 150;
         regressor_list(5).nLagsForward = 150;
-        regressor_list(5).name = 'iti button press';
+        regressor_list(5).name = 'button_press';
         
-        regressor_list(6).value = trial_start;
-        regressor_list(6).nLagsBack = 50;
-        regressor_list(6).nLagsForward = 500;
-        regressor_list(6).name = 'trial start';
+        regressor_list(6).value = button_press_incoh_motion;
+        regressor_list(6).nLagsBack = 150;
+        regressor_list(6).nLagsForward = 150;
+        regressor_list(6).name = 'iti button press';
         
-        regressor_list(7).value = EEGdat{i}{b}(63,:,:)';
-        regressor_list(7).nLagsBack = 0;
-        regressor_list(7).nLagsForward = 0;
-        regressor_list(7).name = 'confound_EOG_reg_ver';
+        regressor_list(7).value = trial_start;
+        regressor_list(7).nLagsBack = 50;
+        regressor_list(7).nLagsForward = 500;
+        regressor_list(7).name = 'trial start';
         
-        regressor_list(8).value = EEGdat{i}{b}(64,:,:)';
+        regressor_list(8).value = EEGdat{i}{b}(63,:,:)';
         regressor_list(8).nLagsBack = 0;
         regressor_list(8).nLagsForward = 0;
-        regressor_list(8).name = 'confound_EOG_reg_hor';
+        regressor_list(8).name = 'confound_EOG_reg_ver';
+        
+        regressor_list(9).value = EEGdat{i}{b}(64,:,:)';
+        regressor_list(9).nLagsBack = 0;
+        regressor_list(9).nLagsForward = 0;
+        regressor_list(9).name = 'confound_EOG_reg_hor';
 %         
-        
-        
+        regressor_list(1:3) = [];
+
      
         Fs = D{i}.fsample;
         [lagged_design_matrix, time_idx] = create_lagged_design_matrix(regressor_list, Fs);
       
         if tf_analysis 
          for freq = 1:size(EEGdat{i}{b},2)   
-                    tmp = (pinv(lagged_design_matrix')*squeeze(EEGdat{i}{b}(:,freq,:))')';
+                    tmp = (geninv(lagged_design_matrix')*squeeze(EEGdat{i}{b}(:,freq,:))')';
         
         for r = 1:length(regressor_list)
             betas{freq}{r}(:,:,i,b) = tmp(:,time_idx(r).dm_row_idx); %betas (indexed by regressors): channels * lags * sessions * blocks
@@ -529,7 +535,7 @@ for i = 1:nSess
         end 
             
         else
-        tmp = (pinv(lagged_design_matrix')*EEGdat{i}{b}')';
+        tmp = (geninv(lagged_design_matrix')*EEGdat{i}{b}')';
         
         for r = 1:length(regressor_list)
             betas{r}(:,:,i,b) = tmp(:,time_idx(r).dm_row_idx); %betas (indexed by regressors): channels * lags * sessions * blocks
@@ -553,6 +559,7 @@ frequency = 10;
 freqlabel = D{1}.frequencies(frequency);
 end 
 %% 
+
 
 for r = 1:6
     figure;
