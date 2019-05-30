@@ -2,7 +2,8 @@
 % load(fullfile(EEGdir,'preprocessed_EEG_dat',sprintf('sub%03.0f_betas_kernel_reg.mat',20)));
 
 scriptdir = fullfile('/Users/maria/Documents/Matlab/continuous_eeg_analysis/eeg_analysis');
-EEGdir = '/Volumes/LaCie/data/preprocessed_EEG_dat/';
+%EEGdir = '/Volumes/LaCie/data/preprocessed_EEG_dat/';
+EEGdir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','data','EEG','preprocessed_EEG_dat');
 addpath('/Users/maria/Documents/matlab/spm12');
 addpath('/Users/maria/Documents/MATLAB/fieldtrip'); % fieldtrip tool box to analyse data
 ft_defaults
@@ -336,7 +337,7 @@ end
 
 
 %% 18
-subID = 18;
+subID = 19;
 
 load(fullfile(EEGdir, sprintf('sub%03.0f_betas_all_reg.mat',subID)))
 fig_id = 1; 
@@ -375,33 +376,32 @@ ft_struct.avg = mean_b(:,:);
 cfg = [];
 cfg.xlim = [start_time start_time + 500];  % time limit
 
-% maxlim = nanmean(mean_b(:))+ 0.5 *std(mean_b(:),'omitnan');
+lim = quantile(mean_b(:),[0.1 0.9]);
 
-% minlim = nanmean(mean_b(:))- 0.5 *std(mean_b(:),'omitnan');
-
-
-if fig_id < 5 
-    maxlim = 0.5 ; 
-minlim = -0.3 ;
-elseif fig_id > 4 && fig_id < 9
-    maxlim = 0.5; 
-minlim = -1.2 ;
-elseif fig_id > 8 && fig_id < 13
-    maxlim = 0.7; 
-minlim = -0.5;
-elseif fig_id > 12 && fig_id < 17
-    maxlim = 1.5; 
-minlim = -5;
-
-elseif fig_id > 16 && fig_id < 21
-   
-        maxlim = 1.5; 
-minlim = -5;
-elseif fig_id > 20 && fig_id < 25
-       maxlim = 0.5; 
-minlim = -1; 
-    
-end 
+minlim = lim(1);
+maxlim = lim(2);
+% if fig_id < 5 
+%     maxlim = 0.08 ; 
+% minlim = -0.2 ;
+% elseif fig_id > 4 && fig_id < 9
+%     maxlim = 1; 
+% minlim = -0.5 ;
+% elseif fig_id > 8 && fig_id < 13
+%     maxlim = 0.9; 
+% minlim = -0.3;
+% elseif fig_id > 12 && fig_id < 17
+%     maxlim = 8; 
+% minlim = -5;
+% 
+% elseif fig_id > 16 && fig_id < 21
+%    
+%         maxlim = 8; 
+% minlim = -5;
+% elseif fig_id > 20 && fig_id < 25
+%        maxlim = 1.3; 
+% minlim = -1.5; 
+%     
+% end 
 
 cfg.zlim = [minlim maxlim];  % colour limit
 cfg.layout = 'quickcap64.mat';

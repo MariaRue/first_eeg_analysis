@@ -288,7 +288,7 @@ for sj = 1:length(subj_list)
     nChannels = 64;
     save_name = sprintf('sub%03.0f_betas_all_reg.mat',subID);
 
-    if exist(fullfile(EEGdir,'preprocessed_EEG_dat',save_name)) ~= 2
+    %if exist(fullfile(EEGdir,'preprocessed_EEG_dat',save_name)) ~= 2
         
     
     for i = 1:nSess
@@ -311,8 +311,14 @@ for sj = 1:length(subj_list)
                 coherence_jump = abs([0; diff(coherence)])>0; %vector of coherence 'jumps'
                 coherence_jump_level = coherence_jump.*abs(coherence); %vector of coherence 'jumps'
                 
+                % demean coherence jump level - but only non-zero values -
+                % not the zeros!!!!
+                mean_coh_jump_lev = mean(coherence_jump_level(coherence_jump_level > 0));
+                coherence_jump_level(coherence_jump_level > 0) = coherence_jump_level(coherence_jump_level > 0) - mean_coh_jump_lev; 
+                
                 mean_coherence = bhv{i}.B.mean_coherence{b}; % vector of mean coherences of this block - to figure out trial periods
                 
+               
                 %
                 % % difference between coherence at t and t-1 (0 at the start because
                 % % coherence is undefined at t0 so cannot calculate diff between t0 and t1)
@@ -346,11 +352,19 @@ for sj = 1:length(subj_list)
                 % regressor for prediciton error
                 coherences = [];
                 coherences = bhv{i}.B.coherence_frame{b};
+                coherence(coherence>1) = 1; coherence(coherence<-1) = -1;
                 diff_coherences = diff(coherences(coherence_jump));
                 diff_coherences = [coherences(1); diff_coherences]; % differnce to prev cohernce for first coherence is that coherence itself
                 jump_idx = find(coherence_jump);
                 coherence_level_difference = zeros(size(coherences,1),1);
                 coherence_level_difference(jump_idx) = abs(diff_coherences);
+                
+                % de-mean coherence Level difference (pred error) but only
+                % non-zero values 
+               
+               
+                 
+           
                 
                 nF = length(coherence);
                 %
@@ -381,7 +395,7 @@ for sj = 1:length(subj_list)
                 
                 regressor_list(6).value = trial_start;
                 regressor_list(6).nLagsBack = 50;
-                regressor_list(6).nLagsForward = 500;
+                regressor_list(6).nLagsForward = 800;
                 regressor_list(6).name = 'trial start';
                 
                 regressor_list(7).value = EEGdat{i}{b}(63,:,:)';
@@ -419,9 +433,12 @@ for sj = 1:length(subj_list)
     
   
     save(fullfile(EEGdir,'preprocessed_EEG_dat',save_name),'betas', 'time_idx','chanlbCPZ','channel_ind','chanlabels');
-    end
+    %end
     clear betas regressor_list
 
+    
+    save_name = sprintf('sub%03.0f_betas_kernel_reg.mat',subID);
+      if exist(fullfile(EEGdir,'preprocessed_EEG_dat',save_name)) ~= 2
     for i = 1:nSess
         
         disp(i);
@@ -474,7 +491,7 @@ for sj = 1:length(subj_list)
                 
                 regressor_list(4).value = trial_start;
                 regressor_list(4).nLagsBack = 50;
-                regressor_list(4).nLagsForward = 500;
+                regressor_list(4).nLagsForward = 700;
                 regressor_list(4).name = 'trial start';
                 
                 regressor_list(5).value = EEGdat{i}{b}(63,:,:)';
@@ -508,10 +525,10 @@ for sj = 1:length(subj_list)
     chanlabels = D{1}.chanlabels;
     
     
-    save_name = sprintf('sub%03.0f_betas_kernel_reg.mat',subID);
+    
     save(fullfile(EEGdir,'preprocessed_EEG_dat',save_name),'betas', 'time_idx','chanlbCPZ','channel_ind','chanlabels');
 
-    
+      end
 end % loop through subject folders
 
 
