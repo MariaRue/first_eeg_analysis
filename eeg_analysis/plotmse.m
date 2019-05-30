@@ -29,7 +29,7 @@ mn = nanmean(ymat);
 se = nanstd(ymat)./sqrt(size(ymat,1));
 
 hold on;
-h(1) = plot(xsamp,mn,'LineWidth',2,varargin{:});
-h(2) = plot(xsamp,mn+se,'LineWidth',1,varargin{:});
-h(3) = plot(xsamp,mn-se,'LineWidth',1,varargin{:});
+h(1) = plot(xsamp,mn,'k','LineWidth',2,varargin{:});
+h(2) = plot(xsamp,mn+se,'Color', [0.5, 0.5, 0.5],'LineWidth',1,varargin{:});
+h(3) = plot(xsamp,mn-se,'Color', [0.5, 0.5, 0.5],'LineWidth',1,varargin{:});
 hold off;
