@@ -529,6 +529,14 @@ for sj = 1:length(subj_list)
     save(fullfile(EEGdir,'preprocessed_EEG_dat',save_name),'betas', 'time_idx','chanlbCPZ','channel_ind','chanlabels');
 
       end
+      
+      %% trial based analysis 
+      
+      trial_based_analysis
+      
+      
+      
+      
 end % loop through subject folders
 
 
