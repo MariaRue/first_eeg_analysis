@@ -10,7 +10,7 @@ EEGdir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','data','EEG')
 addpath('/Users/maria/Documents/MATLAB/fieldtrip'); % fieldtrip tool box to analyse data
 ft_defaults
 subj_list = [16,18:21,24,26,32];
-
+%% get data timelocked to trial start 
 for  sj = 1:length(subj_list)
     subID = subj_list(sj);
     BHVdatadir = fullfile(EEGdir,sprintf('sub%03.0f',subID),'behaviour');
@@ -26,6 +26,17 @@ cfg.trialdef.prestim = 3;
 cfg.trialdef.poststim = 10; 
 cfg = ft_definetrial(cfg); 
 
+
+  cfg.reref       = 'yes';
+        cfg.channel     = 'all';
+        cfg.implicitref = 'LM';            % the implicit (non-recorded) reference channel is added to the data representation
+        cfg.refchannel     = {'LM', 'RM'}; % the average of these channels is used as the new reference
+        cfg.detrend = 'yes';
+        
+        cfg.lpfilter = 'yes';
+        cfg.lpfreq = 5; % we played around with filtering to get rid of the
+        % weird artefacts we found, usually also highpass filter with 0.1 and ord 3
+        cfg.lpfiltord = 3;
 data{i} = ft_preprocessing(cfg); 
 
 
@@ -82,60 +93,191 @@ predYblink = betas(:,1)*X(:,1)';
 data_without_blinks.trial{tr}(1:61,:) = Y - predYblink; 
 end
 
+ save(fullfile(EEGdir,'preprocessed_EEG_dat',[sprintf('sub%03.0f',subID),'_trial_start_locked_wo_blinks']),'data_without_blinks');
+
+end 
+
+%% put all subjs into one dataframe
+
+for  sj = 1:length(subj_list)
+    subID = subj_list(sj);
+    clear data_load
+    
+    
+     data_load = load(fullfile(EEGdir,'preprocessed_EEG_dat',[sprintf('sub%03.0f',subID),'_trial_start_locked_wo_blinks']));
+     data{sj} = data_load.data_without_blinks; 
+     num_trials = length(data{sj}.trial);
+     data{sj}.trialinfo(: ,3) = ones(num_trials,1) * subID;
+     
+    
+      
+end 
+
+cfg = []; 
+data_all_subj = ft_appenddata(cfg,data{:});
+save(fullfile(EEGdir,'preprocessed_EEG_dat','all_subjs_trial_start'),'data_all_subj');
+%% average across subjects and conditions for each coherence level - timelocked to trial start 
 coherence = [30,40,50];
 
 figure
-
-for bl = 1:4
-    cfg = [];
-  
-    cfg.trials = data_append.trialinfo(:,2) == bl;
-    
-%     data_without_blinks.trialinfo(Ind(bl) : Ind(bl+1),2) = ones(length(Ind(bl) : Ind(bl+1)),1) * str2double(stim{1}.S.block_ID_cells{bl});
-    data_select = ft_selectdata(cfg,data_without_blinks); 
 for i = 1 : 3 % sort for coherences 
    
-    idx_coh = data_select.trialinfo == coherence(i) | data_select.trialinfo == coherence(i)+100;
+    idx_coh = data_all_subj.trialinfo(:,1) == coherence(i) | data_all_subj.trialinfo(:,1) == coherence(i)+100;
     
     cfg = [];
     cfg.trials = idx_coh; 
-    data_coherence{i} = ft_selectdata(cfg,data_select); 
+    data_coherence{i} = ft_selectdata(cfg,data_all_subj); 
+
     cfg = [];
-average_ERP{i} = ft_timelockanalysis(cfg,data_coherence{i});
-
-end
-
-cfg = [];
 cfg.channel = {'CPZ'};
 cfg.baseline = [-1 -2];
 cfg.baselinetype = 'absolute';
 cfg.layout = 'quickcap64.mat';
+average_ERP{i} = ft_timelockbaseline(cfg,data_coherence{i});
 
-% i think this is wrong and I plotted these differently in the actual analysis 
-subplot(2,2,bl)
+end
+
+
+
+
 
 ft_singleplotER(cfg,average_ERP{1}, average_ERP{2}, average_ERP{3});
+legend('30%', '40%', '50%','FontSize',14)
+title('Averaged ERP across Subjects and conditions for different coherence levels','FontSize',14)
+xlabel('time (s) - trial start at 0','FontSize',14)
+%%  
+% now plot topoplot 
+figure; 
+sb_idx = 1; 
 
+lim = quantile(average_ERP{1}.trial(:),[0.1 0.9]);
 
+minlim = lim(1);
+maxlim = lim(2);
+for i = 1:3
+    start_time = -1;
+    for t = 1:8
+cfg = [];
+cfg.xlim = [start_time start_time + 1];
+start_time = start_time + 1; 
+cfg.zlim = [-1.5 1.5];
+cfg.layout = 'quickcap64.mat';
+subplot(3,8,sb_idx)
+sb_idx = sb_idx + 1; 
+ ft_topoplotER(cfg,average_ERP{i}); colorbar
+    end
+end
 
-legend('30','40','50')
+subplot(3,8,1)
+title('30% coherence timelocked to button press')
+subplot(3,8,2)
+title('0 1')
+subplot(3,8,3)
+title('1 2sec')
+subplot(3,8,4)
+title('2 3sec')
+subplot(3,8,5)
+title('3 4sec')
+subplot(3,8,6)
+title('4 5sec')
+subplot(3,8,7)
+title('5 6sec')
+subplot(3,8,8)
+title('6 7sec')
 
-switch bl 
+subplot(3,8,9)
+title('40% coherence')
+
+subplot(3,8,17)
+title('50% coherence')
+%% 
+for i = 1:24
+    subplot(3,8,i)
+    tidyfig;
     
-    case 1 
-        condition = 'ITIS INTS'; 
-    case 2 
-        condition = 'ITIS INTL'; 
-    case 3
-        condition = 'ITIL INTS';
-    case 4
-        condition = 'ITIL INTL';
 end 
 
-title(sprintf('Subject: %d Condition: %s', subID, condition))
-xlabel('secs, timelocked to trial start at 0')
-% ft_singleplotER(cfg,average_ERP{3});
-end
-savefig(fullfile(EEGdir,'preprocessed_EEG_dat',sprintf('sub%03.0f_locked_to_tiral_start.fig',subID)))
+
+%% average across subjects and coherence levels for each condition - timelocked to trial start 
+
+figure
+for bl = 1 : 4 % sort for coherences 
+   
+    idx_coh = data_all_subj.trialinfo(:,2) == bl ;
+    
+    cfg = [];
+    cfg.trials = idx_coh; 
+    data_block{bl} = ft_selectdata(cfg,data_all_subj); 
+
+    cfg = [];
+cfg.channel = {'CPZ'};
+cfg.baseline = [-1 -2];
+cfg.baselinetype = 'absolute';
+cfg.layout = 'quickcap64.mat';
+average_ERP{bl} = ft_timelockbaseline(cfg,data_block{bl});
 
 end
+
+
+
+
+
+ft_singleplotER(cfg,average_ERP{1}, average_ERP{2}, average_ERP{3}, average_ERP{4});
+
+legend('ITIS INTS', 'ITIS INTL', 'ITIL INTS','ITIL INTL','FontSize',14)
+title('Averaged ERP across Subjects and coherences for different conditions','FontSize',14)
+xlabel('time (s) - trial start at 0','FontSize',14)
+
+%%
+% now plot topoplot 
+figure; 
+sb_idx = 1; 
+
+lim = quantile(average_ERP{1}.trial(:),[0.1 0.9]);
+
+minlim = lim(1);
+maxlim = lim(2);
+for i = 1:4
+    start_time = -1;
+    for t = 1:8
+cfg = [];
+cfg.xlim = [start_time start_time + 1];
+start_time = start_time + 1; 
+cfg.zlim = [-1.5 1.5];
+cfg.layout = 'quickcap64.mat';
+subplot(4,8,sb_idx)
+sb_idx = sb_idx + 1; 
+ ft_topoplotER(cfg,average_ERP{i}); colorbar
+    end
+end
+
+subplot(4,8,1)
+title('ITIS INTS condition timelocked to button press')
+subplot(4,8,2)
+title('0 1sec')
+subplot(4,8,3)
+title('1 2sec')
+subplot(4,8,4)
+title('2 3sec')
+subplot(4,8,5)
+title('3 4sec')
+subplot(4,8,6)
+title('4 5sec')
+subplot(4,8,7)
+title('5 6sec')
+
+subplot(4,8,9)
+title('ITIS INTL')
+
+subplot(4,8,17)
+title('ITIL INTS')
+
+subplot(4,8,25)
+title('ITIL INTL')
+
+%% 
+for i = 1:32
+    subplot(4,8,i)
+    tidyfig;
+    
+end 

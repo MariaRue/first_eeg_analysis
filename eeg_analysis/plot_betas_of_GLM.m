@@ -365,6 +365,7 @@ bs = betas{r}(:,:,:,:);
 % take the average across sessions
 mean_b = nanmean(bs,4);
 mean_b = nanmean(mean_b,3);
+keyboard;
 ft_defaults % start fieldtrip
 
 ft_struct.dimord = 'chan_time';
@@ -380,28 +381,7 @@ lim = quantile(mean_b(:),[0.1 0.9]);
 
 minlim = lim(1);
 maxlim = lim(2);
-% if fig_id < 5 
-%     maxlim = 0.08 ; 
-% minlim = -0.2 ;
-% elseif fig_id > 4 && fig_id < 9
-%     maxlim = 1; 
-% minlim = -0.5 ;
-% elseif fig_id > 8 && fig_id < 13
-%     maxlim = 0.9; 
-% minlim = -0.3;
-% elseif fig_id > 12 && fig_id < 17
-%     maxlim = 8; 
-% minlim = -5;
-% 
-% elseif fig_id > 16 && fig_id < 21
-%    
-%         maxlim = 8; 
-% minlim = -5;
-% elseif fig_id > 20 && fig_id < 25
-%        maxlim = 1.3; 
-% minlim = -1.5; 
-%     
-% end 
+
 
 cfg.zlim = [minlim maxlim];  % colour limit
 cfg.layout = 'quickcap64.mat';
@@ -440,5 +420,108 @@ cfg.zlim = [-2 1];  % colour limit
 cfg.layout = 'quickcap64.mat';
 % cfg.parameter = 'individual'; % the default 'avg' is not present in the data
 figure; ft_topoplotER(cfg,ft_struct); colorbar
+
+%% 
+
+for i = 1:length(subj_list)
+    subID = subj_list(i);
+clear betas
+betas = load(fullfile(EEGdir, sprintf('sub%03.0f_betas_all_reg.mat',subID)));
+for r = 1:6
+bs = []; 
+mean_b = [];
+bs = betas.betas{r}(:,:,:,:);
+
+mean_b = nanmean(bs,4);
+mean_b = nanmean(mean_b,3);
+
+bs_all{r}(:,:,i) = mean_b; 
+
+mean_all{r} = nanmean(bs_all{r},3);
+end
+end
+%% 
+fig_id = 1; 
+for r = 1:6
+    
+  
+    
+  
+
+    for t = 1:4
+        if r ~= 6
+        start_time = -1000;    
+        start_time = start_time + t * 500;
+        else 
+            start_time = -500;    
+           start_time = start_time + t * 1375; 
+        end 
+        
+        
+clear bs
+clear mean_b
+ft_struct.time = time_idx(r).timebins;
+
+
+
+ft_defaults % start fieldtrip
+
+ft_struct.dimord = 'chan_time';
+
+ft_struct.label = chanlabels;
+% ft_struct.elec = average_ERP{1}.elec;
+ft_struct.avg = mean_all{r}(:,:);
+
+cfg = [];
+cfg.xlim = [start_time start_time + 500];  % time limit
+
+lim = quantile(mean_all{r}(:),[0.1 0.9]);
+
+minlim = lim(1);
+maxlim = lim(2);
+
+
+cfg.zlim = [minlim maxlim];  % colour limit
+cfg.layout = 'quickcap64.mat';
+% cfg.parameter = 'individual'; % the default 'avg' is not present in the data
+subplot(6,4,fig_id)
+fig_id = fig_id + 1;
+ft_topoplotER(cfg,ft_struct); colorbar
+    end
+
+end
+savefig(fullfile(EEGdir,sprintf('sub%03.0f_topo_all_reg',subID)))
+
+subplot(6,4,1)
+title('coherence jump')
+subplot(6,4,2)
+title('0 0.5sec')
+subplot(6,4,3)
+title('0.5 1sec')
+subplot(6,4,4)
+title('1 1.5sec')
+
+subplot(6,4,5)
+title('coherence jump level')
+
+subplot(6,4,9)
+title('prediction error')
+
+subplot(6,4,13)
+title('button press during trial')
+
+subplot(6,4,17)
+title('button press during intertrial')
+
+subplot(6,4,21)
+title('trial start')
+
+%% 
+for i = 1:24
+    
+    subplot(6,4,i)
+    tidyfig;
+end 
+
 
 

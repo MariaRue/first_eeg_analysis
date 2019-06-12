@@ -3,7 +3,7 @@
 % Data = load ('sub002_sess010_behav.mat');
 
 % BHVdatadir = '/Users/maria/Documents/data/data.continuous_rdk/EEG_pilot/sub005/behaviour/'; 
-session = 'train';
+session = 'EEG';
 switch session
     
     case 'EEG'
@@ -20,10 +20,10 @@ end
 % BHVdatadir = '/Users/maria/Documents/data/data.continuous_rdk/EEG_pilot/behaviour/sub000'
 % Stimdatadir = '/Users/maria/Documents/data/data.continuous_rdk/EEG_pilot/stim/sub000'
 %% load in behavioural data
- subID = 25; 
- nSess = 2;
+ subID = 20; 
+ nSess = 6;
 
-sess = [10,11];
+sess = [1:6];
 for i = 1:nSess
    s = sess(i);
     fname_behav = fullfile(BHVdatadir,sprintf('sub%03.0f_sess%03.0f_behav.mat',subID,s));
@@ -65,12 +65,13 @@ for i = 1:4
     elseif stim{sess}.S.block_ID_cells{i} == '4'
         t = 'ITI long, INTE long';
     end
-    
-    
+     
     subplot(4,1,i)
     plot(bhv{sess}.B.coherence_frame{i})
     hold on
     plot(bhv{sess}.B.mean_coherence{i})
+  
+    
     if i==9
         l(1) = plot(frame_correct,ones(numel(frame_correct),1),'g.')
         l(2) = plot(frame_incorrect,ones(numel(frame_incorrect),1),'rx')
