@@ -4,7 +4,7 @@ EEGdir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','data','EEG')
 
 addpath('/Users/maria/Documents/MATLAB/fieldtrip'); % fieldtrip tool box to analyse data
 ft_defaults
-subj_list = [16,18:21,24,26,32];
+subj_list = [16,18:21,24,26,32,  52, 41, 34, 35];
 %%
 for sj = 1:length(subj_list)
     clear data_append data data_without_blinks data
@@ -13,6 +13,8 @@ for sj = 1:length(subj_list)
     BHVdatadir = fullfile(EEGdir,sprintf('sub%03.0f',subID),'behaviour');
     STdatadir = fullfile(EEGdir,sprintf('sub%03.0f',subID),'stim');
     EEGdatadir =  fullfile(EEGdir,sprintf('sub%03.0f',subID),'eeg');
+    
+        if exist(fullfile(EEGdir,'preprocessed_EEG_dat',[sprintf('sub%03.0f',subID),'_button_press_locked_append.mat'])) ~= 2
     
     for i = 1:6
         cfg = [];
@@ -119,7 +121,7 @@ for sj = 1:length(subj_list)
     data_append =  ft_appenddata(cfg,data{:});
     save(fullfile(EEGdir,'preprocessed_EEG_dat',[sprintf('sub%03.0f',subID),'_button_press_locked_append']),'data_append');
     cd (scriptdir)
-    
+        
     % remove eyeblinks
     data_without_blinks = data_append;
     for tr = 1:length(data_append.trial)
@@ -148,7 +150,7 @@ for sj = 1:length(subj_list)
     end
     
     save(fullfile(EEGdir,'preprocessed_EEG_dat',[sprintf('sub%03.0f',subID),'_button_press_locked_wo_blinks']),'data_without_blinks');
-    
+        end
 end
 
 %% put all subjs into one dataframe
@@ -184,14 +186,19 @@ for i = 1 : 3 % sort for coherences
     data_coherence{i} = ft_selectdata(cfg,data_all_subj);
     
     cfg = [];
-    cfg.channel = {'CPZ'};
+%     cfg.channel = {'CPZ'};
     cfg.baseline = [-6 -5];
     cfg.baselinetype = 'absolute';
     cfg.layout = 'quickcap64.mat';
-    average_ERP{i} = ft_timelockbaseline(cfg,data_coherence{i});
+    average_ERP_time{i} = ft_timelockanalysis(cfg,data_coherence{i});
     
+    cfg = []; 
+    
+    average_ERP{i} = ft_timelockbaseline(cfg,average_ERP_time{i});
 end
 
+cfg = []; 
+cfg.channel = 'CPZ'; 
 ft_singleplotER(cfg,average_ERP{1}, average_ERP{2}, average_ERP{3});
 legend('30%', '40%', '50%','FontSize',14)
 title('Averaged ERP across Subjects and conditions for different coherence levels','FontSize',14)
@@ -201,7 +208,7 @@ xlabel('time (s) - button press at 0','FontSize',14)
 figure; 
 sb_idx = 1; 
 
-lim = quantile(average_ERP{1}.trial(:),[0.1 0.9]);
+lim = quantile(average_ERP_time{i}.avg(:),[0.1 0.9]);
 
 minlim = lim(1);
 maxlim = lim(2);
@@ -248,6 +255,8 @@ end
 %% %% average across subjects and coherence levels for each condition - timelocked to trial start
 
 figure
+clear average_ERP_time
+clear average_ERP
 for bl = 1 : 4 % sort for coherences
     
     idx_coh = data_all_subj.trialinfo(:,2) == bl ;
@@ -261,8 +270,8 @@ for bl = 1 : 4 % sort for coherences
     cfg.baseline = [-6 -5];
     cfg.baselinetype = 'absolute';
     cfg.layout = 'quickcap64.mat';
-    average_ERP{bl} = ft_timelockbaseline(cfg,data_block{bl});
-    
+    average_ERP_time{bl} = ft_timelockanalysis(cfg,data_block{bl});
+    average_ERP{bl} = ft_timelockbaseline(cfg,average_ERP_time{bl});
 end
 
 
@@ -279,8 +288,8 @@ xlabel('time (s) - button press at 0','FontSize',14)
 figure; 
 sb_idx = 1; 
 
-lim = quantile(average_ERP{1}.trial(:),[0.1 0.9]);
-
+% lim = quantile(average_ERP_time{1}.avg(:),[0.1 0.9]);
+lim = [-1.2516    0.6446];
 minlim = lim(1);
 maxlim = lim(2);
 for i = 1:4

@@ -12,12 +12,14 @@ EEGdir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','data','EEG')
 addpath('/Users/maria/Documents/matlab/spm12');
 addpath('/Users/maria/Documents/MATLAB/fieldtrip'); % fieldtrip tool box to analyse data
 ft_defaults
-subj_list = [16,18:21,24,26,32];
+subj_list = [40,51, 43];
 
 %% loop through each subject and load the data and match the behavioural triggers with the EEG triggers and save the resulting eegdatasets
-for sj = 1:length(subj_list)
 
-    clearvars -EXCEPT scriptdir EEGdir subj_list sj
+for sj = 1:length(subj_list)
+ 
+    clearvars -EXCEPT sjj scriptdir EEGdir subj_list sj
+    
     subID = subj_list(sj);
     BHVdatadir = fullfile(EEGdir,sprintf('sub%03.0f',subID),'behaviour');
     STdatadir = fullfile(EEGdir,sprintf('sub%03.0f',subID),'stim');
@@ -37,7 +39,7 @@ for sj = 1:length(subj_list)
         
         eeg_raw = dir('*dpa');
         nSess = length({eeg_raw.name});
-        for l = 1:nSess
+        for l = 1:6
             
             
             fname_load = fullfile(EEGdatadir,...
@@ -53,7 +55,7 @@ for sj = 1:length(subj_list)
         
     end
     
-    
+    nSess = 6; 
     
     
     % load in data from one subject or created SPM file if that hasn't
@@ -127,21 +129,23 @@ for sj = 1:length(subj_list)
         for i = 1:nSess %loop over sessions
             
             
+          
+           
+            
             eeg_events = D{i}.events; %events in EEG data
             eob = find([eeg_events.value]==210); %end of block trigger
             sob = find([eeg_events.value]== 11);
             
             
             if length(eob)~=nBlocks
-                error('didn''t find 4 end of blocks');
+                sprintf('didn''t find 4 end of blocks, subID %d, session %d',subID, i);
             elseif length(sob) ~= nBlocks
-                error('didn''t find 4 start of blocks');
+                sprintf('didn''t find 4 starts of blocks, subID %d, session %d',subID, i);
             else
                 
                 for b = 1:nBlocks% loop over blocks
                     
-                    % %
-                    
+                     
                     %a number of triggers in S.trigger_vals haven't made it into
                     %the EEG data. We now try to correct this problem, making
                     %'trigger_vals_eegmatch' - a version of S.trigger_vals that
@@ -200,7 +204,8 @@ for sj = 1:length(subj_list)
                     block_Session_ID(i,b,2) = str2double(stim{i}.S.block_ID_cells{b});
                     
                 end
-            end
+                end
+            
         end
         
         save(fullfile(EEGdir,'preprocessed_EEG_dat',[sprintf('sub%03.0f',subID),'_block_sess_id']),'block_Session_ID','trigger_vals_eegmatch');
@@ -529,10 +534,11 @@ for sj = 1:length(subj_list)
     save(fullfile(EEGdir,'preprocessed_EEG_dat',save_name),'betas', 'time_idx','chanlbCPZ','channel_ind','chanlabels');
 
       end
+    
       
-      %% trial based analysis 
+      % trial based analysis 
       
-      trial_based_analysis
+      % trial_based_analysis
       
       
       

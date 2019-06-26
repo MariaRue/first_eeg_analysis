@@ -9,7 +9,7 @@ addpath('/Users/maria/Documents/MATLAB/fieldtrip'); % fieldtrip tool box to anal
 ft_defaults
 
 % path to hard drive /Volumes/LaCie
-subj_list = [16,18:21,24,26,32];
+subj_list = [28,42,40,51,43];
 %%
 fig_Id = 1;
 figure_counter = 0;
@@ -137,7 +137,7 @@ end
 savefig(fullfile(EEGdir,sprintf('kernel_reg_%s',time_idx(r).name)))
 end
 %% %18
-subID = 16;
+subID = 28;
 
 load(fullfile(EEGdir, sprintf('sub%03.0f_betas_kernel_reg.mat',subID)))
 fig_id = 1; 

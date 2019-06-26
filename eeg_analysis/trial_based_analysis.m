@@ -9,7 +9,7 @@ EEGdir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','data','EEG')
     
 addpath('/Users/maria/Documents/MATLAB/fieldtrip'); % fieldtrip tool box to analyse data
 ft_defaults
-subj_list = [16,18:21,24,26,32];
+subj_list = [16,18:21,24,26,32, 52, 41, 34, 35, 51, 40, 28, 42, 43];
 %% get data timelocked to trial start 
 for  sj = 1:length(subj_list)
     subID = subj_list(sj);
@@ -17,6 +17,8 @@ for  sj = 1:length(subj_list)
     STdatadir = fullfile(EEGdir,sprintf('sub%03.0f',subID),'stim');
     EEGdatadir =  fullfile(EEGdir,sprintf('sub%03.0f',subID),'eeg');
     clear data_append data 
+    
+    if exist(fullfile(EEGdir,'preprocessed_EEG_dat',[sprintf('sub%03.0f',subID),'_trial_start_locked_wo_blinks.mat'])) ~= 2
 for i = 1:6
 cfg = []; 
 cfg.dataset = fullfile(EEGdatadir,sprintf('fdspmeeg_sub%03.0f_sess%03.0f_eeg.mat',subID,i)); 
@@ -46,7 +48,9 @@ data{i} = ft_preprocessing(cfg);
         bhv{i} = load(fname_behav);
         fname_stim = fullfile(STdatadir,sprintf('sub%03.0f_sess%03.0f_stim.mat',subID,i));
         stim{i} = load(fname_stim);
-   Ind = find(data{i}.trialinfo(:,1) == 11);      
+   Ind = find(data{i}.trialinfo(:,1) == 11);    
+   
+   data{i}.trialinfo(:,3) = ones(length(data{i}.trialinfo(:,1)),1) * i; 
         
  for bl = 1:4
     cfg = [];
@@ -94,7 +98,7 @@ data_without_blinks.trial{tr}(1:61,:) = Y - predYblink;
 end
 
  save(fullfile(EEGdir,'preprocessed_EEG_dat',[sprintf('sub%03.0f',subID),'_trial_start_locked_wo_blinks']),'data_without_blinks');
-
+    end
 end 
 
 %% put all subjs into one dataframe
@@ -106,12 +110,58 @@ for  sj = 1:length(subj_list)
     
      data_load = load(fullfile(EEGdir,'preprocessed_EEG_dat',[sprintf('sub%03.0f',subID),'_trial_start_locked_wo_blinks']));
      data{sj} = data_load.data_without_blinks; 
+     coh_30_idx = data{sj}.trialinfo(:,1) == 30 | data{sj}.trialinfo(:,1) == 130;
+      coh_40_idx = data{sj}.trialinfo(:,1) == 40 | data{sj}.trialinfo(:,1) == 140;
+       coh_50_idx = data{sj}.trialinfo(:,1) == 50 | data{sj}.trialinfo(:,1) == 150;
+     
+       
+       cfg = []; 
+       cfg.trials = coh_30_idx; 
+       cfg.channel = 'CPZ'; 
+       cfg.avgoverchan = 'yes';
+       cfg.avgoverrpt = 'yes';
+     coh_30{sj} = ft_selectdata(cfg,data{sj}); 
+     
+            cfg = []; 
+       cfg.trials = coh_40_idx; 
+       cfg.channel = 'CPZ'; 
+     cfg.avgoverrpt = 'yes';
+     cfg.avgoverchan = 'yes';
+     coh_40{sj} = ft_selectdata(cfg,data{sj});  
+     
+            cfg = []; 
+       cfg.trials = coh_50_idx; 
+       cfg.channel = 'CPZ'; 
+     cfg.avgoverchan = 'yes';
+     cfg.avgoverrpt = 'yes';
+     coh_50{sj} = ft_selectdata(cfg,data{sj}); 
+     
+     
+        chan = 40; 
+   time = [2 3.5]; 
+  
+   timesl_coh = find( coh_30{sj}.time{1} >= time(1) &  coh_30{sj}.time{1} <= time(2));
+ 
+    values_coh_30(sj)  = mean(coh_30{sj}.trial{1}(timesl_coh));
+  values_coh_40(sj)  = mean(coh_40{sj}.trial{1}(timesl_coh));
+    values_coh_50(sj)  = mean(coh_50{sj}.trial{1}(timesl_coh));
+     
      num_trials = length(data{sj}.trial);
-     data{sj}.trialinfo(: ,3) = ones(num_trials,1) * subID;
+     data{sj}.trialinfo(: ,4) = ones(num_trials,1) * subID;
      
     
       
 end 
+
+
+M1 = [values_coh_30',values_coh_40', values_coh_50'];
+figure; plot(M1','o-'); xlim([0.5 3.5])
+xticks([1 2 3])
+xticklabels({'30%','40%','50%'})
+legend({'subj1', 'subj2', 'subj3', 'subj4', 'subj5', 'subj6', ...
+        'subj7', 'subj8', 'subj9', 'subj10', 'subj11', 'sub12'}, 'location','EastOutside');
+ p_coh = anova1(M1);
+ 
 
 cfg = []; 
 data_all_subj = ft_appenddata(cfg,data{:});
@@ -127,14 +177,21 @@ for i = 1 : 3 % sort for coherences
     cfg = [];
     cfg.trials = idx_coh; 
     data_coherence{i} = ft_selectdata(cfg,data_all_subj); 
+    
+    cfg = []; 
+    data_coherence{i} = ft_timelockanalysis(cfg, data_coherence{i});
+    
 
     cfg = [];
 cfg.channel = {'CPZ'};
 cfg.baseline = [-1 -2];
 cfg.baselinetype = 'absolute';
 cfg.layout = 'quickcap64.mat';
-average_ERP{i} = ft_timelockbaseline(cfg,data_coherence{i});
+average_ERP_timelock{i} = ft_timelockanalysis(cfg,data_coherence{i});
 
+cfg = []; 
+
+average_ERP{i} = ft_timelockbaseline(cfg,average_ERP_timelock{i});
 end
 
 
@@ -281,3 +338,5 @@ for i = 1:32
     tidyfig;
     
 end 
+
+%% try plotting 
