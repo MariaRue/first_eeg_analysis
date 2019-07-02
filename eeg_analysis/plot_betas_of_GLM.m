@@ -9,7 +9,7 @@ addpath('/Users/maria/Documents/MATLAB/fieldtrip'); % fieldtrip tool box to anal
 ft_defaults
 
 % path to hard drive /Volumes/LaCie
-subj_list = [28,42,40,51,43];
+subj_list = [50];
 %%
 fig_Id = 1;
 figure_counter = 0;

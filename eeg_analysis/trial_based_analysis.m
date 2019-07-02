@@ -9,7 +9,7 @@ EEGdir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','data','EEG')
     
 addpath('/Users/maria/Documents/MATLAB/fieldtrip'); % fieldtrip tool box to analyse data
 ft_defaults
-subj_list = [16,18:21,24,26,32, 52, 41, 34, 35, 51, 40, 28, 42, 43];
+subj_list = [28, 42];
 %% get data timelocked to trial start 
 for  sj = 1:length(subj_list)
     subID = subj_list(sj);
@@ -270,14 +270,14 @@ for bl = 1 : 4 % sort for coherences
 cfg.channel = {'CPZ'};
 cfg.baseline = [-1 -2];
 cfg.baselinetype = 'absolute';
-cfg.layout = 'quickcap64.mat';
+
 average_ERP{bl} = ft_timelockbaseline(cfg,data_block{bl});
 
 end
 
 
 
-
+cfg = []; 
 
 ft_singleplotER(cfg,average_ERP{1}, average_ERP{2}, average_ERP{3}, average_ERP{4});
 
