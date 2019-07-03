@@ -4,7 +4,7 @@ EEGdir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','data','EEG')
 
 addpath('/Users/maria/Documents/MATLAB/fieldtrip'); % fieldtrip tool box to analyse data
 ft_defaults
-subj_list = [16,18:21,24,26,32,  52, 41, 34, 35];
+subj_list = [16,18:21,24,26,32, 52, 41, 34, 35, 51, 40, 28, 42];
 %%
 for sj = 1:length(subj_list)
     clear data_append data data_without_blinks data
@@ -173,8 +173,7 @@ cfg = [];
 data_all_subj = ft_appenddata(cfg,data{:});
 save(fullfile(EEGdir,'preprocessed_EEG_dat','all_subjs_button_press'),'data_all_subj');
 
-%% average across subjects and conditions for each coherence level - timelocked to trial start
-coherence = [30,40,50];
+%% average across subjects and conditions for each coherence level - timelocked to button press
 
 figure
 for i = 1 : 3 % sort for coherences

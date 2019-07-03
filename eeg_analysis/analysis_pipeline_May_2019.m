@@ -12,7 +12,7 @@ EEGdir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','data','EEG')
 addpath('/Users/maria/Documents/matlab/spm12');
 addpath('/Users/maria/Documents/MATLAB/fieldtrip'); % fieldtrip tool box to analyse data
 ft_defaults
-subj_list = [50];
+subj_list = [39];
 
 %% loop through each subject and load the data and match the behavioural triggers with the EEG triggers and save the resulting eegdatasets
 
