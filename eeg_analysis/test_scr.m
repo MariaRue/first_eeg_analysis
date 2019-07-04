@@ -171,10 +171,12 @@ end
 
 cfg = [];
 data_all_subj = ft_appenddata(cfg,data{:});
-save(fullfile(EEGdir,'preprocessed_EEG_dat','all_subjs_button_press'),'data_all_subj');
+[easy_cap_labels] = change_electrode_labels(data_all_subj.label);
+data_all_subj.label = easy_cap_labels; 
+% save(fullfile(EEGdir,'preprocessed_EEG_dat','all_subjs_button_press'),'data_all_subj');
 
 %% average across subjects and conditions for each coherence level - timelocked to button press
-
+coherence = [30, 40, 50];
 figure
 for i = 1 : 3 % sort for coherences
     
@@ -186,19 +188,22 @@ for i = 1 : 3 % sort for coherences
     
     cfg = [];
 %     cfg.channel = {'CPZ'};
-    cfg.baseline = [-6 -5];
-    cfg.baselinetype = 'absolute';
-    cfg.layout = 'quickcap64.mat';
+
+    
     average_ERP_time{i} = ft_timelockanalysis(cfg,data_coherence{i});
     
     cfg = []; 
-    
+        cfg.baseline = [-6 -5];
+    cfg.baselinetype = 'absolute';
+
     average_ERP{i} = ft_timelockbaseline(cfg,average_ERP_time{i});
 end
 
 cfg = []; 
-cfg.channel = 'CPZ'; 
+
+cfg.channels = ['P1', 'P2', 'PZ'];
 ft_singleplotER(cfg,average_ERP{1}, average_ERP{2}, average_ERP{3});
+
 legend('30%', '40%', '50%','FontSize',14)
 title('Averaged ERP across Subjects and conditions for different coherence levels','FontSize',14)
 xlabel('time (s) - button press at 0','FontSize',14)
@@ -334,3 +339,9 @@ for i = 1:28
     tidyfig;
     
 end 
+
+%% 
+
+ 
+ 
+ 
