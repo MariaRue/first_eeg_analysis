@@ -100,7 +100,22 @@ end
 
 
 cfg = [];
+
+%%%%%%%%%%%%
+% TOM SAYS %
+%%%%%%%%%%%%
+% appending data like this will bias your average towards subjects with
+% larger number of trials
+% e.g., subj1 has 100 trials, subj2 has 10 - you average, nTrials = 110,
+% grand average is highly biased towards subj1.
+% a better way to do this is:
+% take subj1's data, extract all trials from condition A
+% average those (subj1 cond A ERP)
+% repeat for all subjs (create cell array of subjX condA)
+% average *those*... = grand average for cond A
 data_all_subj = ft_appenddata(cfg,data{:});
+
+
 [easy_cap_labels] = change_electrode_labels(data_all_subj.label);
 data_all_subj.label = easy_cap_labels; 
 
@@ -134,7 +149,25 @@ end
 cfg = [];
 %cfg.channel = {'CPz'};
 cfg.layout = 'easycapM1.mat';
+
+%%%%%%%%%%%%
+% TOM SAYS %
+%%%%%%%%%%%%
+% your labels don't match the 'lay' layout structure that is inside
+% 'easycapM1.mat'; only 35 of the channel names are the same.
+% you need to modify your function chance_electrode_labels to make sure
+% that the output matches lay.label;
+
 ft_singleplotER(cfg,average_ERP{1}, average_ERP{2}, average_ERP{3});
+
+%%%%%%%%%%%%
+% TOM SAYS %
+%%%%%%%%%%%%
+% general points for topoplotting:
+% set cfg.ylim to be something sensible, e.g., [-1e4 1e4], or whatever
+% it *should have zero in the middle.
+% and most importantly it should be the same in any related series of plots
+% (e.g., all coherence levels)
 legend('30%', '40%', '50%','FontSize',14)
 title('Averaged ERP across Subjects and conditions for different coherence levels','FontSize',14)
 xlabel('time (s) - trial start at 0','FontSize',14)
@@ -222,10 +255,27 @@ block_average_ERP{bl} = ft_timelockanalysis(cfg,block_average_ERP_timelock{bl});
 
 end
 
+%%%%%%%%%%%%
+% TOM SAYS %
+%%%%%%%%%%%%
+% when singleplotting, try to choose sensible colours that allow us to
+% infer the 2 x 2 design (e.g., light blue, dark blue, light red, dark red)
 
+% try something like this
+% % get colours from colourbrewer
+% cl = cbrewer('div','RdBu', 12);
+% % select a dark red, a light red, a light blue, and a dark blue
+% cl = cl([1 4 9 12],:);
+% 
+% % you might need to change the order of the rows of 'cl' around to it
+% plots how you want... eg by doing: cl = cl([1 2 4 3], :);
 
-
-
+% then when you plot use the following arguments
+% cfg.graphcolor = cl; % calls nice colours
+% cfg.linewidth = 3; % makes lines wider so they are easier to see from far
+% away
+% you can also use set(gca,'FontSize', 18) or some larger number, so the
+% axis labels are larger
 ft_singleplotER(cfg,block_average_ERP{1},block_average_ERP{2}, block_average_ERP{3}, block_average_ERP{4});
 
 legend('ITIS INTS', 'ITIS INTL', 'ITIL INTS','ITIL INTL','FontSize',14)
