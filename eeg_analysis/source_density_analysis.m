@@ -2,8 +2,8 @@
 % check whether we get the same results
 
 scriptdir = fullfile('/Users/maria/Documents/Matlab/continuous_eeg_analysis/eeg_analysis');
-EEGdir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','data','EEG');
-
+%EEGdir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','data','EEG');
+EEGdir = '/Volumes/LaCie/data/';
 
 
 
@@ -291,9 +291,10 @@ for i = 1 : 3 % sort for coherences
 end
 
 cfg = []; 
+cfg.legend = {'30%', '40%', '50%'};
  cfg.layout = 'easycapM1.mat';
 ft_multiplotER(cfg,average_ERP{1}, average_ERP{2}, average_ERP{3});
-legend('30%', '40%', '50%','FontSize',14)
+legend('30%', '40%', '50%')
 title('Averaged ERP across Subjects and conditions for different coherence levels','FontSize',14)
 xlabel('time (s) - button press at 0','FontSize',14)
 %%
@@ -426,3 +427,12 @@ for i = 1:28
     tidyfig;
     
 end 
+%% LRP 
+% grand average between left and right motion topoplot for button press 
+
+% trial indicator 
+left_trials = data_all_subj.trialinfo == 30| data_all_subj.trialinfo == 40 | data_all_subj.trialinfo == 50;
+right_trials = left_trials==0; 
+
+% compute Left - right 
+
