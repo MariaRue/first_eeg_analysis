@@ -2,8 +2,8 @@
 % check whether we get the same results
 
 scriptdir = fullfile('/Users/maria/Documents/Matlab/continuous_eeg_analysis/eeg_analysis');
-EEGdir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','data','EEG');
-%EEGdir = '/Volumes/LaCie/data/';
+%EEGdir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','data','EEG');
+EEGdir = '/Volumes/LaCie/data/';
 
 
 
@@ -45,7 +45,7 @@ for  sj = 1:length(subj_list)
     
     data_load = load(fullfile(EEGdir,'preprocessed_EEG_dat',[sprintf('sub%03.0f',subID),'_source_density_trial_start_locked']));
     data{sj} = data_load.source_data;
-    
+  
 %     coh_30_idx = data{sj}.trialinfo(:,1) == 30 | data{sj}.trialinfo(:,1) == 130;
 %     coh_40_idx = data{sj}.trialinfo(:,1) == 40 | data{sj}.trialinfo(:,1) == 140;
 %     coh_50_idx = data{sj}.trialinfo(:,1) == 50 | data{sj}.trialinfo(:,1) == 150;
@@ -85,10 +85,42 @@ for  sj = 1:length(subj_list)
     num_trials = length(data{sj}.trial);
     data{sj}.trialinfo(: ,4) = ones(num_trials,1) * subID;
     
+    data_avg =  compute_average_for_single_participant(data{sj},1, [-2 -1]);
+    coh_30{sj} = data_avg{1};
+    coh_40{sj} = data_avg{2};
+    coh_50{sj} = data_avg{3};
     
+    data_avg_con =  compute_average_for_single_participant(data{sj},0, [-2 -1]);
+    cond_1{sj} = data_avg_con{1};
+    cond_2{sj} = data_avg_con{2};
+    cond_3{sj} = data_avg_con{3};
+    cond_4{sj} = data_avg_con{4};
     
 end
 
+% lets calculate grand average for each coherence level 
+cfg = []; 
+coh_avg{1} = ft_timelockgrandaverage(cfg,coh_30{:});
+coh_avg{2} = ft_timelockgrandaverage(cfg,coh_40{:});
+coh_avg{3} = ft_timelockgrandaverage(cfg,coh_50{:});
+
+% and for each condition 
+cond_avg{1} = ft_timelockgrandaverage(cfg,cond_1{:});
+cond_avg{2} = ft_timelockgrandaverage(cfg,cond_2{:});
+cond_avg{3} = ft_timelockgrandaverage(cfg,cond_3{:});
+cond_avg{4} = ft_timelockgrandaverage(cfg,cond_4{:});
+
+% change labels to easycap 
+[easy_cap_labels] = change_electrode_labels(coh_avg{1}.label);
+
+
+coh_avg{1}.label  = easy_cap_labels;
+coh_avg{2}.label  = easy_cap_labels;
+coh_avg{3}.label  = easy_cap_labels;
+cond_avg{1}.label = easy_cap_labels;
+cond_avg{2}.label = easy_cap_labels;
+cond_avg{3}.label = easy_cap_labels;
+cond_avg{4}.label = easy_cap_labels;
 % 
 % M1 = [values_coh_30',values_coh_40', values_coh_50'];
 % figure; plot(M1','o-'); xlim([0.5 3.5])
@@ -99,78 +131,39 @@ end
 % p_coh = anova1(M1);
 
 
-cfg = [];
-
-%%%%%%%%%%%%
-% TOM SAYS %
-%%%%%%%%%%%%
-% appending data like this will bias your average towards subjects with
-% larger number of trials
-% e.g., subj1 has 100 trials, subj2 has 10 - you average, nTrials = 110,
-% grand average is highly biased towards subj1.
-% a better way to do this is:
-% take subj1's data, extract all trials from condition A
-% average those (subj1 cond A ERP)
-% repeat for all subjs (create cell array of subjX condA)
-% average *those*... = grand average for cond A
-data_all_subj = ft_appenddata(cfg,data{:});
-
-
-[easy_cap_labels] = change_electrode_labels(data_all_subj.label);
-data_all_subj.label = easy_cap_labels; 
+% cfg = [];
 
 % save(fullfile(EEGdir,'preprocessed_EEG_dat','all_subjs_trial_start'),'data_all_subj'); 
 %% average across subjects and conditions for each coherence level - timelocked to trial start 
-coherence = [30,40,50];
 
-figure
-for i = 1 : 3 % sort for coherences 
-   
-    idx_coh = data_all_subj.trialinfo(:,1) == coherence(i) | data_all_subj.trialinfo(:,1) == coherence(i)+100;
-    
-    cfg = [];
-    cfg.trials = idx_coh; 
-    data_coherence{i} = ft_selectdata(cfg,data_all_subj); 
-    
- 
-    
+lim = quantile(coh_avg{1}.avg(:),[0.1 0.9]);
 
-    cfg = [];
-average_ERP_timelock{i} = ft_timelockanalysis(cfg,data_coherence{i});
-
-cfg = []; 
-cfg.baseline = [-1 -2];
-cfg.baselinetype = 'absolute';
-average_ERP{i} = ft_timelockbaseline(cfg,average_ERP_timelock{i});
-end
-
-
+ cl = cbrewer('seq','Blues',12);   
+ cl =  cl([6 10 12],:);
+minlim = -lim(2);
+maxlim = lim(2);
 
 cfg = [];
 %cfg.channel = {'CPz'};
 cfg.layout = 'easycapM1.mat';
+cfg.ylim = [minlim maxlim];
+% cfg.graphcolor = ['b','r','k'];
+cfg.graphcolor = cl;
+cfg.linewidth = 3; 
+%%%%%%%%%%%%
 
-%%%%%%%%%%%%
-% TOM SAYS %
-%%%%%%%%%%%%
-% your labels don't match the 'lay' layout structure that is inside
-% 'easycapM1.mat'; only 35 of the channel names are the same.
-% you need to modify your function chance_electrode_labels to make sure
-% that the output matches lay.label;
 
-ft_singleplotER(cfg,average_ERP{1}, average_ERP{2}, average_ERP{3});
+ft_singleplotER(cfg,coh_avg{:});
 
-%%%%%%%%%%%%
-% TOM SAYS %
-%%%%%%%%%%%%
-% general points for topoplotting:
-% set cfg.ylim to be something sensible, e.g., [-1e4 1e4], or whatever
+
+% YLIM - zero in middle!!! and make legend work!!!
 % it *should have zero in the middle.
 % and most importantly it should be the same in any related series of plots
 % (e.g., all coherence levels)
-legend('30%', '40%', '50%','FontSize',14)
+legend({'30%', '40%', '50%'},'FontSize',14)
 title('Averaged ERP across Subjects and conditions for different coherence levels','FontSize',14)
 xlabel('time (s) - trial start at 0','FontSize',14)
+set(gca,'FontSize',18)
 
 
 %%  
@@ -178,11 +171,11 @@ xlabel('time (s) - trial start at 0','FontSize',14)
 figure; 
 sb_idx = 1; 
 
-lim = quantile(average_ERP{1}.avg(:),[0.1 0.9]);
+lim = quantile(coh_avg{1}.avg(:),[0.1 0.9]);
 
     
   
-minlim = lim(1);
+minlim = -lim(2);
 maxlim = lim(2);
 for i = 1:3
     
@@ -195,7 +188,7 @@ cfg.zlim = [minlim maxlim];
 cfg.layout = 'easycapM1.mat';
 subplot(3,8,sb_idx)
 sb_idx = sb_idx + 1; 
- ft_topoplotER(cfg,average_ERP{i}); colorbar
+ ft_topoplotER(cfg,coh_avg{i}); colorbar
     end
 end
 
@@ -229,31 +222,8 @@ for i = 1:24
 end 
 %% average across subjects and coherence levels for each condition - timelocked to trial start 
 
-figure
-for bl = 1 : 4 % sort for coherences 
-   
-    idx_coh = data_all_subj.trialinfo(:,2) == bl ;
-    
-    cfg = [];
-    cfg.trials = idx_coh; 
-    data_block{bl} = ft_selectdata(cfg,data_all_subj); 
-    
-    
-    
-
-    cfg = [];
 
 
-block_average_ERP_timelock{bl} = ft_timelockanalysis(cfg,data_block{bl});
-
-cfg = []; 
-cfg.baseline = [-1 -2];
-cfg.baselinetype = 'absolute';
-cfg.layout = 'easycapM1';
-block_average_ERP{bl} = ft_timelockanalysis(cfg,block_average_ERP_timelock{bl});
-
-
-end
 
 %%%%%%%%%%%%
 % TOM SAYS %
@@ -276,11 +246,35 @@ end
 % away
 % you can also use set(gca,'FontSize', 18) or some larger number, so the
 % axis labels are larger
-ft_singleplotER(cfg,block_average_ERP{1},block_average_ERP{2}, block_average_ERP{3}, block_average_ERP{4});
 
-legend('ITIS INTS', 'ITIS INTL', 'ITIL INTS','ITIL INTL','FontSize',14)
+lim = quantile(cond_avg{1}.avg(:),[0.1 0.9]);
+
+cl = cbrewer('div','RdBu', 12);  
+% cl = cl([1 4 9 12],:);
+minlim = -10e-05;
+maxlim = 10e-05;
+
+cfg = [];
+%cfg.channel = {'CPz'};
+cfg.layout = 'easycapM1.mat';
+cfg.ylim = [minlim maxlim];
+% cfg.graphcolor = ['b','r','k'];
+cfg.graphcolor = cl;
+cfg.linewidth = 3; 
+%%%%%%%%%%%%
+
+
+
+
+
+
+
+ft_singleplotER(cfg,cond_avg{:});
+
+legend({'ITIS INTS', 'ITIS INTL', 'ITIL INTS','ITIL INTL'},'FontSize',14)
 title('Averaged ERP across Subjects and coherences for different conditions','FontSize',14)
 xlabel('time (s) - trial start at 0','FontSize',14)
+set(gca,'FontSize',18)
 
 %% now plot topoplot 
 figure; 
