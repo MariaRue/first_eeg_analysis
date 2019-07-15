@@ -14,7 +14,7 @@ for sj = 1:length(subj_list)
     STdatadir = fullfile(EEGdir,sprintf('sub%03.0f',subID),'stim');
     EEGdatadir =  fullfile(EEGdir,sprintf('sub%03.0f',subID),'eeg');
     
-        if exist(fullfile(EEGdir,'preprocessed_EEG_dat',[sprintf('sub%03.0f',subID),'_button_press_locked_append.mat'])) ~= 2
+        %if exist(fullfile(EEGdir,'preprocessed_EEG_dat',[sprintf('sub%03.0f',subID),'_button_press_locked_append.mat'])) ~= 2
     
     for i = 1:6
         cfg = [];
@@ -40,6 +40,7 @@ for sj = 1:length(subj_list)
         cfg.lpfiltord = 3;
         
         data{i} = ft_preprocessing(cfg);
+        
         
         fname_behav = fullfile(BHVdatadir,sprintf('sub%03.0f_sess%03.0f_behav.mat',subID,i));
         bhv{i} = load(fname_behav);
@@ -113,12 +114,17 @@ for sj = 1:length(subj_list)
             
         end
         
-        
-        
+      
     end
     
     cfg = [];
     data_append =  ft_appenddata(cfg,data{:});
+    trialinfo = zeros(length(data_append.trialinfo(:,1)),3);
+    trialinfo(:,1) = data_append.trialinfo(:,3);
+    trialinfo(:,3) = data_append.trialinfo(:,1);
+    trialinfo(:,2) = data_append.trialinfo(:,2);
+    data_append.trialinfo = trialinfo; 
+
     save(fullfile(EEGdir,'preprocessed_EEG_dat',[sprintf('sub%03.0f',subID),'_button_press_locked_append']),'data_append');
     cd (scriptdir)
         
@@ -149,8 +155,10 @@ for sj = 1:length(subj_list)
         data_without_blinks.trial{tr}(1:61,:) = Y - predYblink;
     end
     
+    
+    
     save(fullfile(EEGdir,'preprocessed_EEG_dat',[sprintf('sub%03.0f',subID),'_button_press_locked_wo_blinks']),'data_without_blinks');
-        end
+      %  end
 end
 
 %% put all subjs into one dataframe
