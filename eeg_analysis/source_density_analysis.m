@@ -45,43 +45,10 @@ for  sj = 1:length(subj_list)
     
     data_load = load(fullfile(EEGdir,'preprocessed_EEG_dat',[sprintf('sub%03.0f',subID),'_source_density_trial_start_locked']));
     data{sj} = data_load.source_data;
-  
-%     coh_30_idx = data{sj}.trialinfo(:,1) == 30 | data{sj}.trialinfo(:,1) == 130;
-%     coh_40_idx = data{sj}.trialinfo(:,1) == 40 | data{sj}.trialinfo(:,1) == 140;
-%     coh_50_idx = data{sj}.trialinfo(:,1) == 50 | data{sj}.trialinfo(:,1) == 150;
-%     
-%     
-%     cfg = [];
-%     cfg.trials = coh_30_idx;
-%     cfg.channel = 'CPZ';
-%     cfg.avgoverchan = 'yes';
-%     cfg.avgoverrpt = 'yes';
-%     coh_30{sj} = ft_selectdata(cfg,data{sj});
-%     
-%     cfg = [];
-%     cfg.trials = coh_40_idx;
-%     cfg.channel = 'CPZ';
-%     cfg.avgoverrpt = 'yes';
-%     cfg.avgoverchan = 'yes';
-%     coh_40{sj} = ft_selectdata(cfg,data{sj});
-%     
-%     cfg = [];
-%     cfg.trials = coh_50_idx;
-%     cfg.channel = 'CPZ';
-%     cfg.avgoverchan = 'yes';
-%     cfg.avgoverrpt = 'yes';
-%     coh_50{sj} = ft_selectdata(cfg,data{sj});
-%     
-%     
-%     chan = 40;
-%     time = [2 3.5];
-%     
-%     timesl_coh = find( coh_30{sj}.time{1} >= time(1) &  coh_30{sj}.time{1} <= time(2));
-%     
-%     values_coh_30(sj)  = mean(coh_30{sj}.trial{1}(timesl_coh));
-%     values_coh_40(sj)  = mean(coh_40{sj}.trial{1}(timesl_coh));
-%     values_coh_50(sj)  = mean(coh_50{sj}.trial{1}(timesl_coh));
-    
+    % change labels to easycap 
+    [easy_cap_labels] = change_electrode_labels(data{sj}.label);
+    data{sj}.label = easy_cap_labels; 
+     
     num_trials = length(data{sj}.trial);
     data{sj}.trialinfo(: ,4) = ones(num_trials,1) * subID;
     
@@ -110,30 +77,7 @@ cond_avg{2} = ft_timelockgrandaverage(cfg,cond_2{:});
 cond_avg{3} = ft_timelockgrandaverage(cfg,cond_3{:});
 cond_avg{4} = ft_timelockgrandaverage(cfg,cond_4{:});
 
-% change labels to easycap 
-[easy_cap_labels] = change_electrode_labels(coh_avg{1}.label);
-
-
-coh_avg{1}.label  = easy_cap_labels;
-coh_avg{2}.label  = easy_cap_labels;
-coh_avg{3}.label  = easy_cap_labels;
-cond_avg{1}.label = easy_cap_labels;
-cond_avg{2}.label = easy_cap_labels;
-cond_avg{3}.label = easy_cap_labels;
-cond_avg{4}.label = easy_cap_labels;
-% 
-% M1 = [values_coh_30',values_coh_40', values_coh_50'];
-% figure; plot(M1','o-'); xlim([0.5 3.5])
-% xticks([1 2 3])
-% xticklabels({'30%','40%','50%'})
-% legend({'subj1', 'subj2', 'subj3', 'subj4', 'subj5', 'subj6', ...
-%     'subj7', 'subj8', 'subj9', 'subj10', 'subj11', 'sub12'}, 'location','EastOutside');
-% p_coh = anova1(M1);
-
-
-% cfg = [];
-
-% save(fullfile(EEGdir,'preprocessed_EEG_dat','all_subjs_trial_start'),'data_all_subj'); 
+ 
 %% average across subjects and conditions for each coherence level - timelocked to trial start 
 
 lim = quantile(coh_avg{1}.avg(:),[0.1 0.9]);
@@ -225,27 +169,6 @@ end
 
 
 
-%%%%%%%%%%%%
-% TOM SAYS %
-%%%%%%%%%%%%
-% when singleplotting, try to choose sensible colours that allow us to
-% infer the 2 x 2 design (e.g., light blue, dark blue, light red, dark red)
-
-% try something like this
-% % get colours from colourbrewer
-% cl = cbrewer('div','RdBu', 12);
-% % select a dark red, a light red, a light blue, and a dark blue
-% cl = cl([1 4 9 12],:);
-% 
-% % you might need to change the order of the rows of 'cl' around to it
-% plots how you want... eg by doing: cl = cl([1 2 4 3], :);
-
-% then when you plot use the following arguments
-% cfg.graphcolor = cl; % calls nice colours
-% cfg.linewidth = 3; % makes lines wider so they are easier to see from far
-% away
-% you can also use set(gca,'FontSize', 18) or some larger number, so the
-% axis labels are larger
 
 lim = quantile(cond_avg{1}.avg(:),[0.1 0.9]);
 
@@ -340,6 +263,9 @@ for  sj = 1:length(subj_list)
     data_load = load(fullfile(EEGdir,'preprocessed_EEG_dat',[sprintf('sub%03.0f',subID),'_source_density_trial_start_locked']));
     data{sj} = data_load.source_data;
     
+        [easy_cap_labels] = change_electrode_labels(data{sj}.label);
+    data{sj}.label = easy_cap_labels; 
+    
     num_trials = length(data{sj}.trial);
     data{sj}.trialinfo(: ,4) = ones(num_trials,1) * subID;
     
@@ -384,9 +310,6 @@ cfg  = [];
 right_avg = ft_timelockgrandaverage(cfg,right_timelock{:}); 
 left_avg = ft_timelockgrandaverage(cfg,left_timelock{:}); 
 grand_average_avg = ft_timelockgrandaverage(cfg,grand_average{:}); 
-[easy_cap_labels] = change_electrode_labels(grand_average_avg_4.label);
-
-grand_average_avg.label = easy_cap_labels; 
 
 
 cfg = [];
@@ -414,6 +337,9 @@ for  sj = 1:length(subj_list)
     
     data_load = load(fullfile(EEGdir,'preprocessed_EEG_dat',[sprintf('sub%03.0f',subID),'_source_density_trial_start_locked']));
     data{sj} = data_load.source_data;
+        [easy_cap_labels] = change_electrode_labels(data{sj}.label);
+    data{sj}.label = easy_cap_labels;     
+    
     
     num_trials = length(data{sj}.trial);
     data{sj}.trialinfo(: ,4) = ones(num_trials,1) * subID;
@@ -451,11 +377,9 @@ grand_average_avg_30.avg = left_30_avg.avg - right_30_avg.avg;
 grand_average_avg_40.avg = left_40_avg.avg - right_40_avg.avg; 
 grand_average_avg_50.avg = left_50_avg.avg - right_50_avg.avg; 
 
-[easy_cap_labels] = change_electrode_labels(grand_average_avg_30.label);
 
-grand_average_avg_30.label = easy_cap_labels; 
-grand_average_avg_40.label = easy_cap_labels; 
-grand_average_avg_50.label = easy_cap_labels; 
+
+
 
 
 cfg = [];
@@ -521,6 +445,9 @@ for  sj = 1:length(subj_list)
     
     data_load = load(fullfile(EEGdir,'preprocessed_EEG_dat',[sprintf('sub%03.0f',subID),'_source_density_trial_start_locked']));
     data{sj} = data_load.source_data;
+        [easy_cap_labels] = change_electrode_labels(data{sj}.label);
+    data{sj}.label = easy_cap_labels; 
+    
     
     num_trials = length(data{sj}.trial);
     data{sj}.trialinfo(: ,4) = ones(num_trials,1) * subID;
@@ -563,12 +490,7 @@ grand_average_avg_2.avg = left_2_avg.avg - right_2_avg.avg;
 grand_average_avg_3.avg = left_3_avg.avg - right_3_avg.avg; 
 grand_average_avg_4.avg = left_4_avg.avg - right_4_avg.avg; 
 
-[easy_cap_labels] = change_electrode_labels(grand_average_avg_4.label);
 
-grand_average_avg_1.label = easy_cap_labels; 
-grand_average_avg_2.label = easy_cap_labels; 
-grand_average_avg_3.label = easy_cap_labels; 
-grand_average_avg_4.label = easy_cap_labels; 
 
 
 cfg = [];

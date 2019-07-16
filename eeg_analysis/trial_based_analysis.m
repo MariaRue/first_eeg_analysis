@@ -3,8 +3,8 @@
 
 scriptdir = fullfile('/Users/maria/Documents/Matlab/continuous_eeg_analysis/eeg_analysis');
 EEGdir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','data','EEG');
-     
-
+  %EEGdir = '/Volumes/LaCie/data/';   
+addpath(genpath('/Users/maria/Documents/MATLAB/cbrewer'))
 
     
 addpath('/Users/maria/Documents/MATLAB/fieldtrip'); % fieldtrip tool box to analyse data
@@ -43,7 +43,7 @@ data{i} = ft_preprocessing(cfg);
 
 
 
-
+% load behavioural data to assign block id to eeg trials 
  fname_behav = fullfile(BHVdatadir,sprintf('sub%03.0f_sess%03.0f_behav.mat',subID,i));
         bhv{i} = load(fname_behav);
         fname_stim = fullfile(STdatadir,sprintf('sub%03.0f_sess%03.0f_stim.mat',subID,i));
@@ -110,110 +110,82 @@ for  sj = 1:length(subj_list)
     
      data_load = load(fullfile(EEGdir,'preprocessed_EEG_dat',[sprintf('sub%03.0f',subID),'_trial_start_locked_wo_blinks']));
      data{sj} = data_load.data_without_blinks; 
-%      coh_30_idx = data{sj}.trialinfo(:,1) == 30 | data{sj}.trialinfo(:,1) == 130;
-%       coh_40_idx = data{sj}.trialinfo(:,1) == 40 | data{sj}.trialinfo(:,1) == 140;
-%        coh_50_idx = data{sj}.trialinfo(:,1) == 50 | data{sj}.trialinfo(:,1) == 150;
-%      
-%        
-%        cfg = []; 
-%        cfg.trials = coh_30_idx; 
-%        cfg.channel = 'CPZ'; 
-%        cfg.avgoverchan = 'yes';
-%        cfg.avgoverrpt = 'yes';
-%      coh_30{sj} = ft_selectdata(cfg,data{sj}); 
-%      
-%             cfg = []; 
-%        cfg.trials = coh_40_idx; 
-%        cfg.channel = 'CPZ'; 
-%      cfg.avgoverrpt = 'yes';
-%      cfg.avgoverchan = 'yes';
-%      coh_40{sj} = ft_selectdata(cfg,data{sj});  
-%      
-%             cfg = []; 
-%        cfg.trials = coh_50_idx; 
-%        cfg.channel = 'CPZ'; 
-%      cfg.avgoverchan = 'yes';
-%      cfg.avgoverrpt = 'yes';
-%      coh_50{sj} = ft_selectdata(cfg,data{sj}); 
-%      
-%      
-%         chan = 40; 
-%    time = [2 3.5]; 
-%   
-%    timesl_coh = find( coh_30{sj}.time{1} >= time(1) &  coh_30{sj}.time{1} <= time(2));
-%  
-%     values_coh_30(sj)  = mean(coh_30{sj}.trial{1}(timesl_coh));
-%   values_coh_40(sj)  = mean(coh_40{sj}.trial{1}(timesl_coh));
-%     values_coh_50(sj)  = mean(coh_50{sj}.trial{1}(timesl_coh));
+
 %      
      num_trials = length(data{sj}.trial);
      data{sj}.trialinfo(: ,4) = ones(num_trials,1) * subID;
      
+     [easy_cap_labels] = change_electrode_labels(data{sj}.label);
+     data{sj}.label = easy_cap_labels; 
+     
+    data_avg =  compute_average_for_single_participant(data{sj},1, [-2 -1],0);
+    coh_30{sj} = data_avg{1};
+    coh_40{sj} = data_avg{2};
+    coh_50{sj} = data_avg{3};
     
+    data_avg_con =  compute_average_for_single_participant(data{sj},0, [-2 -1],0);
+    cond_1{sj} = data_avg_con{1};
+    cond_2{sj} = data_avg_con{2};
+    cond_3{sj} = data_avg_con{3};
+    cond_4{sj} = data_avg_con{4};
       
 end 
 
-% 
-% M1 = [values_coh_30',values_coh_40', values_coh_50'];
-% figure; plot(M1','o-'); xlim([0.5 3.5])
-% xticks([1 2 3])
-% xticklabels({'30%','40%','50%'})
-% legend({'subj1', 'subj2', 'subj3', 'subj4', 'subj5', 'subj6', ...
-%         'subj7', 'subj8', 'subj9', 'subj10', 'subj11', 'sub12'}, 'location','EastOutside');
-%  p_coh = anova1(M1);
  
-
+% lets calculate grand average for each coherence level 
 cfg = []; 
-data_all_subj = ft_appenddata(cfg,data{:});
-[easy_cap_labels] = change_electrode_labels(data_all_subj.label);
-data_all_subj.label = easy_cap_labels; 
+coh_avg{1} = ft_timelockgrandaverage(cfg,coh_30{:});
+coh_avg{2} = ft_timelockgrandaverage(cfg,coh_40{:});
+coh_avg{3} = ft_timelockgrandaverage(cfg,coh_50{:});
 
-%save(fullfile(EEGdir,'preprocessed_EEG_dat','all_subjs_trial_start'),'data_all_subj');
+% and for each condition 
+cond_avg{1} = ft_timelockgrandaverage(cfg,cond_1{:});
+cond_avg{2} = ft_timelockgrandaverage(cfg,cond_2{:});
+cond_avg{3} = ft_timelockgrandaverage(cfg,cond_3{:});
+cond_avg{4} = ft_timelockgrandaverage(cfg,cond_4{:});
+
+
 %% average across subjects and conditions for each coherence level - timelocked to trial start 
-coherence = [30,40,50];
-
-figure
-for i = 1 : 3 % sort for coherences 
-   
-    idx_coh = data_all_subj.trialinfo(:,1) == coherence(i) | data_all_subj.trialinfo(:,1) == coherence(i)+100;
-    
-    cfg = [];
-    cfg.trials = idx_coh; 
-    data_coherence{i} = ft_selectdata(cfg,data_all_subj); 
-    
-    cfg = []; 
-    data_coherence{i} = ft_timelockanalysis(cfg, data_coherence{i});
-    
-
-    cfg = [];
 
 
+lim = quantile(coh_avg{1}.avg(:),[0.1 0.9]);
 
-average_ERP_timelock{i} = ft_timelockanalysis(cfg,data_coherence{i});
+ cl = cbrewer('seq','Blues',12);   
+ cl =  cl([6 10 12],:);
+minlim = -lim(2);
+maxlim = lim(2);
 
-cfg = []; 
-cfg.baseline = [-1 -2];
-cfg.baselinetype = 'absolute';
-average_ERP{i} = ft_timelockbaseline(cfg,average_ERP_timelock{i});
-end
+cfg = [];
+%cfg.channel = {'CPz'};
+cfg.layout = 'easycapM1.mat';
+cfg.ylim = [minlim maxlim];
+% cfg.graphcolor = ['b','r','k'];
+cfg.graphcolor = cl;
+cfg.linewidth = 3; 
+%%%%%%%%%%%%
 
 
+ft_singleplotER(cfg,coh_avg{:});
 
-cfg = []; 
-cfg.layout = 'easycapM1';
 
-ft_singleplotER(cfg,average_ERP{1}, average_ERP{2}, average_ERP{3});
-legend('30%', '40%', '50%','FontSize',14)
+% YLIM - zero in middle!!! and make legend work!!!
+% it *should have zero in the middle.
+% and most importantly it should be the same in any related series of plots
+% (e.g., all coherence levels)
+legend({'30%', '40%', '50%'},'FontSize',14)
 title('Averaged ERP across Subjects and conditions for different coherence levels','FontSize',14)
 xlabel('time (s) - trial start at 0','FontSize',14)
+set(gca,'FontSize',18)
+
+
 %%  
 % now plot topoplot 
 figure; 
 sb_idx = 1; 
 
-lim = quantile(average_ERP{1}.trial(:),[0.1 0.9]);
+lim = quantile(coh_avg{1}.avg(:),[0.1 0.9]);
 
-minlim = lim(1);
+minlim = -lim(2);
 maxlim = lim(2);
 for i = 1:3
     start_time = -1;
@@ -225,7 +197,7 @@ cfg.zlim = [-1.5 1.5];
 cfg.layout = 'quickcap64.mat';
 subplot(3,8,sb_idx)
 sb_idx = sb_idx + 1; 
- ft_topoplotER(cfg,average_ERP{i}); colorbar
+  ft_topoplotER(cfg,coh_avg{i}); colorbar
     end
 end
 
@@ -262,41 +234,44 @@ end
 %% average across subjects and coherence levels for each condition - timelocked to trial start 
 
 figure
-for bl = 1 : 4 % sort for coherences 
-   
-    idx_coh = data_all_subj.trialinfo(:,2) == bl ;
-    
-    cfg = [];
-    cfg.trials = idx_coh; 
-    data_block{bl} = ft_selectdata(cfg,data_all_subj); 
 
-    cfg = [];
-cfg.channel = {'CPZ'};
-cfg.baseline = [-1 -2];
-cfg.baselinetype = 'absolute';
+lim = quantile(cond_avg{1}.avg(:),[0.1 0.9]);
 
-average_ERP{bl} = ft_timelockbaseline(cfg,data_block{bl});
+cl = cbrewer('div','RdBu', 12);  
+cl = cl([4 1 9 12],:);
+minlim = -10e-05;
+maxlim = 10e-05;
 
-end
+cfg = [];
+%cfg.channel = {'CPz'};
+cfg.layout = 'easycapM1.mat';
+cfg.ylim = [minlim maxlim];
+% cfg.graphcolor = ['b','r','k'];
+cfg.graphcolor = cl;
+cfg.linewidth = 3; 
+%%%%%%%%%%%%
 
 
 
-cfg = []; 
 
-ft_singleplotER(cfg,average_ERP{1}, average_ERP{2}, average_ERP{3}, average_ERP{4});
 
-legend('ITIS INTS', 'ITIS INTL', 'ITIL INTS','ITIL INTL','FontSize',14)
+
+
+ft_singleplotER(cfg,cond_avg{:});
+
+legend({'ITIS INTS', 'ITIS INTL', 'ITIL INTS','ITIL INTL'},'FontSize',14)
 title('Averaged ERP across Subjects and coherences for different conditions','FontSize',14)
 xlabel('time (s) - trial start at 0','FontSize',14)
+set(gca,'FontSize',18)
 
 %%
 % now plot topoplot 
 figure; 
 sb_idx = 1; 
 
-lim = quantile(average_ERP{1}.trial(:),[0.1 0.9]);
+lim = quantile(cond_avg{1}.avg(:),[0.1 0.9]);
 
-minlim = lim(1);
+minlim = -lim(2);
 maxlim = lim(2);
 for i = 1:4
     start_time = -1;
@@ -308,7 +283,7 @@ cfg.zlim = [-1.5 1.5];
 cfg.layout = 'quickcap64.mat';
 subplot(4,8,sb_idx)
 sb_idx = sb_idx + 1; 
- ft_topoplotER(cfg,average_ERP{i}); colorbar
+ ft_topoplotER(cfg,cond_avg{i}); colorbar
     end
 end
 
@@ -342,5 +317,3 @@ for i = 1:32
     tidyfig;
     
 end 
-
-%% try plotting 

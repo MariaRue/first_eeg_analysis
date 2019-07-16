@@ -1,7 +1,7 @@
 
 scriptdir = fullfile('/Users/maria/Documents/Matlab/continuous_eeg_analysis/eeg_analysis');
 EEGdir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','data','EEG');
-
+addpath(genpath('/Users/maria/Documents/MATLAB/cbrewer'))
 addpath('/Users/maria/Documents/MATLAB/fieldtrip'); % fieldtrip tool box to analyse data
 ft_defaults
 subj_list = [16,18:21,24,26,32, 52, 41, 34, 35, 51, 40, 28, 42];
@@ -163,66 +163,93 @@ end
 
 %% put all subjs into one dataframe
 
+clear data
 for  sj = 1:length(subj_list)
     subID = subj_list(sj);
-    clear data_load
+    clear data_load 
     
     
-    data_load = load(fullfile(EEGdir,'preprocessed_EEG_dat',[sprintf('sub%03.0f',subID),'_button_press_locked_wo_blinks']));
-    data{sj} = data_load.data_without_blinks;
+    data_load = load(fullfile(EEGdir,'preprocessed_EEG_dat',[sprintf('sub%03.0f',subID),'_source_density_button_press_locked']));
+    data{sj} = data_load.source_data;
+    
+    [easy_cap_labels] = change_electrode_labels(data{sj}.label);
+    data{sj}.label = easy_cap_labels;
+      
     num_trials = length(data{sj}.trial);
     data{sj}.trialinfo(: ,4) = ones(num_trials,1) * subID;
     
+    data_avg =  compute_average_for_single_participant(data{sj},1, [-6 -5],0);
+    coh_30{sj} = data_avg{1};
+    coh_40{sj} = data_avg{2};
+    coh_50{sj} = data_avg{3};
     
+    data_avg_con =  compute_average_for_single_participant(data{sj},0, [-6 -5],0);
+    cond_1{sj} = data_avg_con{1};
+    cond_2{sj} = data_avg_con{2};
+    cond_3{sj} = data_avg_con{3};
+    cond_4{sj} = data_avg_con{4};
     
 end
 
-cfg = [];
-data_all_subj = ft_appenddata(cfg,data{:});
-[easy_cap_labels] = change_electrode_labels(data_all_subj.label);
-data_all_subj.label = easy_cap_labels; 
-% save(fullfile(EEGdir,'preprocessed_EEG_dat','all_subjs_button_press'),'data_all_subj');
+% lets calculate grand average for each coherence level 
+cfg = []; 
+coh_avg_button_press{1} = ft_timelockgrandaverage(cfg,coh_30{:});
+coh_avg_button_press{2} = ft_timelockgrandaverage(cfg,coh_40{:});
+coh_avg_button_press{3} = ft_timelockgrandaverage(cfg,coh_50{:});
+
+% and for each condition 
+cond_avg_button_press{1} = ft_timelockgrandaverage(cfg,cond_1{:});
+cond_avg_button_press{2} = ft_timelockgrandaverage(cfg,cond_2{:});
+cond_avg_button_press{3} = ft_timelockgrandaverage(cfg,cond_3{:});
+cond_avg_button_press{4} = ft_timelockgrandaverage(cfg,cond_4{:});
+
+% change labels to easycap 
+
+
+
+
 
 %% average across subjects and conditions for each coherence level - timelocked to button press
-coherence = [30, 40, 50];
-figure
-for i = 1 : 3 % sort for coherences
-    
-    idx_coh = data_all_subj.trialinfo(:,3) == coherence(i) | data_all_subj.trialinfo(:,3) == coherence(i)+100;
-    
-    cfg = [];
-    cfg.trials = idx_coh;
-    data_coherence{i} = ft_selectdata(cfg,data_all_subj);
-    
-    cfg = [];
-%     cfg.channel = {'CPZ'};
+lim = quantile(coh_avg_button_press{3}.avg(:),[0.1 0.9]);
 
-    
-    average_ERP_time{i} = ft_timelockanalysis(cfg,data_coherence{i});
-    
-    cfg = []; 
-        cfg.baseline = [-6 -5];
-    cfg.baselinetype = 'absolute';
+ cl = cbrewer('seq','Blues',12);   
+ cl =  cl([6 10 12],:);
+% minlim = -lim(2);
+% maxlim = lim(2);
 
-    average_ERP{i} = ft_timelockbaseline(cfg,average_ERP_time{i});
-end
+maxlim = 30e-5;
+minlim = -maxlim;
 
-cfg = []; 
 
-cfg.channels = ['P1', 'P2', 'PZ'];
-ft_singleplotER(cfg,average_ERP{1}, average_ERP{2}, average_ERP{3});
+cfg = [];
+%cfg.channel = {'CPz'};
+cfg.layout = 'easycapM1.mat';
+% cfg.ylim = [minlim maxlim];
+% cfg.graphcolor = ['b','r','k'];
+cfg.graphcolor = cl;
+cfg.linewidth = 3; 
+%%%%%%%%%%%%
 
-legend('30%', '40%', '50%','FontSize',14)
-title('Averaged ERP across Subjects and conditions for different coherence levels','FontSize',14)
+
+ft_singleplotER(cfg,coh_avg_button_press{:});
+
+
+% YLIM - zero in middle!!! and make legend work!!!
+% it *should have zero in the middle.
+% and most importantly it should be the same in any related series of plots
+% (e.g., all coherence levels)
+legend({'30%', '40%', '50%'},'FontSize',25)
+title('Averaged ERP across Subjects and conditions for different coherence levels CP1 CP2 CPZ P1 PZ P2','FontSize',25)
 xlabel('time (s) - button press at 0','FontSize',14)
+set(gca,'FontSize',25)
 %%
 % now plot topoplot 
 figure; 
 sb_idx = 1; 
 
-lim = quantile(average_ERP_time{i}.avg(:),[0.1 0.9]);
+lim = quantile(coh_avg_button_press{3}.avg(:),[0.1 0.9]);
 
-minlim = lim(1);
+minlim = -lim(2);
 maxlim = lim(2);
 for i = 1:3
     start_time = -4;
@@ -230,78 +257,79 @@ for i = 1:3
 cfg = [];
 cfg.xlim = [start_time start_time + 1];
 start_time = start_time + 1; 
-cfg.zlim = [-5 4];
-cfg.layout = 'quickcap64.mat';
+cfg.zlim = [-22e-5 22e-5];
+cfg.layout = 'easycapM1.mat';
 subplot(3,7,sb_idx)
 sb_idx = sb_idx + 1; 
- ft_topoplotER(cfg,average_ERP{i}); colorbar
+ ft_topoplotER(cfg,coh_avg_button_press{i}); colorbar
     end
 end
 
 subplot(3,7,1)
 title('30% coherence timelocked to button press')
+set(gca,'FontSize',25)
+
+
+
 subplot(3,7,2)
 title('-3 -2sec')
+set(gca,'FontSize',25)
 subplot(3,7,3)
 title('-2 -1sec')
+set(gca,'FontSize',25)
 subplot(3,7,4)
 title('-1 0sec')
+set(gca,'FontSize',25)
 subplot(3,7,5)
 title('0 1sec')
+set(gca,'FontSize',25)
 subplot(3,7,6)
 title('1 2sec')
+set(gca,'FontSize',25)
 subplot(3,7,7)
 title('2 3sec')
+set(gca,'FontSize',25)
 
 subplot(3,7,8)
 title('40% coherence')
-
+set(gca,'FontSize',25)
 subplot(3,7,15)
 title('50% coherence')
+set(gca,'FontSize',25)
 %%
 for i = 1:21
     subplot(3,7,i)
     tidyfig;
     
 end 
-%% %% average across subjects and coherence levels for each condition - timelocked to trial start
+%% %% average across subjects and coherence levels for each condition - timelocked to button press
+lim = quantile(cond_avg_button_press{1}.avg(:),[0.1 0.9]);
 
-figure
-clear average_ERP_time
-clear average_ERP
-for bl = 1 : 4 % sort for coherences
-    
-    idx_coh = data_all_subj.trialinfo(:,2) == bl ;
-    
-    cfg = [];
-    cfg.trials = idx_coh;
-    data_block{bl} = ft_selectdata(cfg,data_all_subj);
-    
-    cfg = [];
-    cfg.channel = {'CPZ'};
-    cfg.baseline = [-6 -5];
-    cfg.baselinetype = 'absolute';
-    cfg.layout = 'quickcap64.mat';
-    average_ERP_time{bl} = ft_timelockanalysis(cfg,data_block{bl});
-    average_ERP{bl} = ft_timelockbaseline(cfg,average_ERP_time{bl});
-end
+cl = cbrewer('div','RdBu', 12);  
+cl = cl([1 4 9 12],:);
+minlim = -10e-05;
+maxlim = 10e-05;
 
+cfg = [];
+%cfg.channel = {'CPz'};
+cfg.layout = 'easycapM1.mat';
+cfg.ylim = [minlim maxlim];
+% cfg.graphcolor = ['b','r','k'];
+cfg.graphcolor = cl;
+cfg.linewidth = 3; 
 
+ft_singleplotER(cfg,cond_avg_button_press{:});
 
-
-
-ft_singleplotER(cfg,average_ERP{1}, average_ERP{2}, average_ERP{3}, average_ERP{4});
-
-legend('ITIS INTS', 'ITIS INTL', 'ITIL INTS','ITIL INTL','FontSize',14)
+legend({'ITIS INTS', 'ITIS INTL', 'ITIL INTS','ITIL INTL'},'FontSize',25)
 title('Averaged ERP across Subjects and coherences for different conditions','FontSize',14)
 xlabel('time (s) - button press at 0','FontSize',14)
-%%
-% now plot topoplot 
+set(gca,'FontSize',25)
+%% % now plot topoplot 
 figure; 
 sb_idx = 1; 
 
-% lim = quantile(average_ERP_time{1}.avg(:),[0.1 0.9]);
-lim = [-1.2516    0.6446];
+lim = quantile(cond_avg_button_press{1}.avg(:),[0.1 0.9]);
+
 minlim = lim(1);
 maxlim = lim(2);
 for i = 1:4
@@ -310,37 +338,45 @@ for i = 1:4
 cfg = [];
 cfg.xlim = [start_time start_time + 1];
 start_time = start_time + 1; 
-cfg.zlim = [-5 4];
-cfg.layout = 'quickcap64.mat';
+cfg.zlim = [-22e-5 22e-5];
+cfg.layout = 'easycapM1.mat';
 subplot(4,7,sb_idx)
 sb_idx = sb_idx + 1; 
- ft_topoplotER(cfg,average_ERP{i}); colorbar
+ ft_topoplotER(cfg,cond_avg_button_press{i}); colorbar
     end
 end
 
 subplot(4,7,1)
 title('ITIS INTS condition timelocked to button press')
+set(gca,'FontSize',25)
 subplot(4,7,2)
 title('-3 -2sec')
+set(gca,'FontSize',25)
 subplot(4,7,3)
 title('-2 -1sec')
+set(gca,'FontSize',25)
 subplot(4,7,4)
 title('-1 0sec')
+set(gca,'FontSize',25)
 subplot(4,7,5)
 title('0 1sec')
+set(gca,'FontSize',25)
 subplot(4,7,6)
+
 title('1 2sec')
+set(gca,'FontSize',25)
 subplot(4,7,7)
 title('2 3sec')
-
+set(gca,'FontSize',25)
 subplot(4,7,8)
 title('ITIS INTL')
-
+set(gca,'FontSize',25)
 subplot(4,7,15)
 title('ITIL INTS')
-
+set(gca,'FontSize',25)
 subplot(4,7,22)
 title('ITIL INTL')
+set(gca,'FontSize',25)
 %%
 for i = 1:28
     subplot(4,7,i)
