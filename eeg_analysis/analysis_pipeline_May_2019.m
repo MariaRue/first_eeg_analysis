@@ -8,17 +8,19 @@
 % participant --> ls > txt (make sure that list contains only direct
 % subject directories)
 scriptdir = fullfile('/Users/maria/Documents/Matlab/continuous_eeg_analysis/eeg_analysis');
-EEGdir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','data','EEG');
+%EEGdir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','data','EEG');
+EEGdir = '/Volumes/LaCie/data/EEG';
 addpath('/Users/maria/Documents/matlab/spm12');
 addpath('/Users/maria/Documents/MATLAB/fieldtrip'); % fieldtrip tool box to analyse data
 ft_defaults
-subj_list = [39];
+reference_type = 'LM_RM';
+subj_list = [18,21,24,35,51];
 
 %% loop through each subject and load the data and match the behavioural triggers with the EEG triggers and save the resulting eegdatasets
 
 for sj = 1:length(subj_list)
  
-    clearvars -EXCEPT sjj scriptdir EEGdir subj_list sj
+    clearvars -EXCEPT sjj scriptdir EEGdir subj_list sj reference_type 
     
     subID = subj_list(sj);
     BHVdatadir = fullfile(EEGdir,sprintf('sub%03.0f',subID),'behaviour');
@@ -65,17 +67,15 @@ for sj = 1:length(subj_list)
         
         
         fname_target = fullfile(EEGdatadir,...
-            sprintf('fdspmeeg_sub%03.0f_sess%03.0f_eeg.mat',subID,i));
+            sprintf('fMdspmeeg_sub%03.0f_sess%03.0f_eeg.mat',subID,i));
         
         
         
-        if exist(fname_target,'file')
+         if exist(fname_target,'file')
             D{i} = spm_eeg_load(fname_target);
             O{i} = spm_eeg_load(fname_target);
         else
             S = [];
-            
-            
             
             S.dataset = fullfile(EEGdatadir,sprintf('sub%03.0f_sess%03.0f_eeg.set',subID,i));
             
@@ -88,11 +88,50 @@ for sj = 1:length(subj_list)
             S.fsample_new = 100;
             D{i} = spm_eeg_downsample(S);
             
+            
+            % rereference the electrodes
             S = [];
             S.D = D{i};
-            S.band = 'bandpass';
-            S.freq = [0.1 30];
-            D{i} = spm_eeg_filter(S);
+            S.mode = 'write';
+            
+            
+            S.keepothers = 1; % to keep the EOG channels
+            switch reference_type
+                
+                
+                case 'LM_RM' % rereference the 61 EEG channels to L+R mastoid average
+                    
+                    
+                    %in our montage we have 61 EEG channels, plus the right mastoid:
+                    S.montage.labelorg = D{1}.chanlabels(1:62);
+                    %we keep all EEG channels, but throw out the right mastoid:
+                    S.montage.labelnew = D{1}.chanlabels(1:61);
+                    
+                    %build our M*N matrix for montaging:
+                    S.montage.tra = eye(62);
+                    %subtract 0.5 of the right mastoid in the re-reference - see
+                    %p.108 of Luck book!
+                    S.montage.tra(:,62) = -0.5;
+                    %get rid of the right mastoid in the new channels:
+                    S.montage.tra(62,:) = [];
+
+                    
+                case 'average_reference'
+                     
+                    %in our montage we have 61 EEG channels. We can ignore
+                    %the right mastoid, as it isn't in our equation.
+                    S.montage.labelorg = D{1}.chanlabels(1:61);
+                    %we keep all EEG channels
+                    S.montage.labelnew = D{1}.chanlabels(1:61);
+                    
+                    %build our M*N matrix for montaging:
+                    S.montage.tra = eye(61)-(1/61);
+                    
+
+                    
+                otherwise 
+                    error('unrecognised re-referencing type')
+            end
         end
         
         % load in behavioural data
@@ -100,10 +139,10 @@ for sj = 1:length(subj_list)
         bhv{i} = load(fname_behav);
         fname_stim = fullfile(STdatadir,sprintf('sub%03.0f_sess%03.0f_stim.mat',subID,i));
         stim{i} = load(fname_stim);
-        
+        keyboard;
     end
     
-    
+    keyboard;
     cd (scriptdir)
     
     
