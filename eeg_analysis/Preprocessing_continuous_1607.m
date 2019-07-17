@@ -4,13 +4,14 @@
 % subject directories)
 scriptdir = fullfile('/Users/maria/Documents/Matlab/continuous_eeg_analysis/eeg_analysis');
 EEGdir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','data','EEG');
-%EEGdir = '/Volumes/LaCie/data/EEG';
+%EEGdir = '/Volumes/LaCie/data_preproc';
 addpath('/Users/maria/Documents/matlab/spm12');
 addpath('/Users/maria/Documents/MATLAB/fieldtrip'); % fieldtrip tool box to analyse data
 ft_defaults
 reference_type = 'LM_RM';
 
-subj_list = [16,18:21,24,26,32, 52, 41, 34, 35, 51, 40, 28, 42];
+%subj_list = [16,18:21,24,26,32, 52, 41, 34, 35, 51, 40, 28, 42];
+subj_list = [26,32, 52, 41, 34, 35, 51, 40, 28, 42];
 %%
 for sj = 1:length(subj_list)
         
@@ -61,31 +62,34 @@ for sj = 1:length(subj_list)
         
         
         fname_target = fullfile(EEGdatadir,...
-            sprintf('fMdspmeeg_sub%03.0f_sess%03.0f_eeg.mat',subID,i));
+            sprintf('dspmeeg_sub%03.0f_sess%03.0f_eeg.mat',subID,i));
         
         
         
-          if exist(fname_target,'file')
-             D{i} = spm_eeg_load(fname_target);
-             O{i} = spm_eeg_load(fname_target);
-         else
-            S = [];
+%           if exist(fname_target,'file')
+%              D{i} = spm_eeg_load(fname_target);
+%              O{i} = spm_eeg_load(fname_target);
+%          else
+%             S = [];
+%             
+%             S.dataset = fullfile(EEGdatadir,sprintf('sub%03.0f_sess%03.0f_eeg.set',subID,i));
+%             
+%             
+%             S.mode = 'continuous';
+%             D{i} = spm_eeg_convert(S);
+%             
+%             S = [];
+%             S.D = D{i};
+%             S.fsample_new = 100;
+%             D{i} = spm_eeg_downsample(S);
+%             
             
-            S.dataset = fullfile(EEGdatadir,sprintf('sub%03.0f_sess%03.0f_eeg.set',subID,i));
             
             
-            S.mode = 'continuous';
-            D{i} = spm_eeg_convert(S);
-            
-            S = [];
-            S.D = D{i};
-            S.fsample_new = 100;
-            D{i} = spm_eeg_downsample(S);
-            
+            % rereference the electrodes
             
             D{i} = spm_eeg_load(fname_target);
             
-            % rereference the electrodes
             S = [];
             S.D = D{i};
 
@@ -137,9 +141,12 @@ for sj = 1:length(subj_list)
         S.band = 'bandpass';
         S.freq = [0.1 30];
         D{i} = spm_eeg_filter(S);
-
+        
+   
+        
+%     end
     end
-    end
+    
     end
     
 
@@ -148,12 +155,22 @@ for sj = 1:length(subj_list)
     %% plot different EOGs 
  
      subID = 16;
+     EEGdir= fullfile('/Users/maria/Documents/data/data.continuous_rdk','data','EEG');
     BHVdatadir = fullfile(EEGdir,sprintf('sub%03.0f',subID),'behaviour');
     STdatadir = fullfile(EEGdir,sprintf('sub%03.0f',subID),'stim');
     EEGdatadir =  fullfile(EEGdir,sprintf('sub%03.0f',subID),'eeg');
     
     
      fname_target = fullfile(EEGdatadir,...
-            sprintf('fMdspmeeg_sub%03.0f_sess%03.0f_eeg.mat',subID,3));
+            sprintf('dspmeeg_sub%03.0f_sess%03.0f_eeg.mat',subID,3));
         
         D = spm_eeg_load(fname_target); 
+        
+        
+        figure
+        plot(D.time, D(63,:,:))
+        
+        %% find eyeblinks 
+        
+        
+        
